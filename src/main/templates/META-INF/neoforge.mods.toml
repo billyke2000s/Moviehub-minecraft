@@ -1,0 +1,35 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+issueTrackerURL="https://github.com/billyke2000s/moviehub-minecraft/issues"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="billyke2000s"
+description='''
+Live TV from MovieHub inside Minecraft: a TV block with a Sky-style guide and a Wii-style remote.
+'''
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="[${neo_version},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="watermedia"
+    type="required"
+    reason="Plays the live TV video streams."
+    versionRange="[${watermedia_version},)"
+    ordering="AFTER"
+    side="CLIENT"

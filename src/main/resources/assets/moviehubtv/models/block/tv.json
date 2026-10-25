@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "front": "moviehubtv:block/tv_front",
+    "side": "moviehubtv:block/tv_side",
+    "top": "moviehubtv:block/tv_top"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "itemGroup.moviehubtv": "MovieHub TV",
+  "block.moviehubtv.tv": "TV",
+  "item.moviehubtv.battery": "Battery",
+  "item.moviehubtv.remote": "Remote",
+  "item.moviehubtv.remote.tip1": "Aim at a TV screen to show the cursor",
+  "item.moviehubtv.remote.tip2": "Right-click: select   Left-click: power",
+  "item.moviehubtv.remote.tip3": "Scroll wheel: move through the guide"
+}

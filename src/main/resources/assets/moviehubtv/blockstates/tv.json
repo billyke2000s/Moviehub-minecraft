@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=north,powered=false": {
+      "model": "moviehubtv:block/tv"
+    },
+    "facing=north,powered=true": {
+      "model": "moviehubtv:block/tv"
+    },
+    "facing=east,powered=false": {
+      "model": "moviehubtv:block/tv",
+      "y": 90
+    },
+    "facing=east,powered=true": {
+      "model": "moviehubtv:block/tv",
+      "y": 90
+    },
+    "facing=south,powered=false": {
+      "model": "moviehubtv:block/tv",
+      "y": 180
+    },
+    "facing=south,powered=true": {
+      "model": "moviehubtv:block/tv",
+      "y": 180
+    },
+    "facing=west,powered=false": {
+      "model": "moviehubtv:block/tv",
+      "y": 270
+    },
+    "facing=west,powered=true": {
+      "model": "moviehubtv:block/tv",
+      "y": 270
+    }
+  }
+}
