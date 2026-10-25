@@ -127,7 +127,7 @@ public final class RemoteControl {
 
     private static void feedback() {
         pressedAt = System.currentTimeMillis();
-        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.8f, 0.2f));
+        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK.value(), 1.8f, 0.2f));
     }
 
     private static void send(BlockPos pos, int action, String channelId) {
