@@ -33,6 +33,8 @@ public class TvBlockEntity extends BlockEntity {
 
     /** Applies a remote or hand action. Server side only. */
     public void apply(int action, String channel) {
+        if (level != null && level.isClientSide) return;
+        if (channel != null && (channel.length() > 256 || channel.chars().anyMatch(c -> c < 32 || c == 127))) return;
         switch (action) {
             case ACTION_POWER -> {
                 on = !on;

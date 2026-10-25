@@ -1,6 +1,7 @@
 package com.billyke2000s.moviehubtv.network;
 
 import com.billyke2000s.moviehubtv.MovieHubTV;
+import com.billyke2000s.moviehubtv.ModRegistry;
 import com.billyke2000s.moviehubtv.block.TvBlockEntity;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
@@ -34,13 +35,27 @@ public record TvActionPayload(BlockPos pos, int action, String channelId) implem
         event.registrar("1").playToServer(TYPE, STREAM_CODEC, TvActionPayload::handle);
     }
 
+    private static final java.util.Map<Player, Long> LAST_ACTION = new java.util.WeakHashMap<>();
+
     private static void handle(TvActionPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             Player player = context.player();
+            if (!player.isAlive() || player.isSpectator()) return;
+            if (!player.getMainHandItem().is(ModRegistry.REMOTE.get())
+                    && !player.getOffhandItem().is(ModRegistry.REMOTE.get())) return;
             Level level = player.level();
+            long tick = level.getGameTime();
+            Long last = LAST_ACTION.get(player);
+            if (last != null && tick - last >= 0 && tick - last < 2) return;
+            LAST_ACTION.put(player, tick);
             BlockPos pos = payload.pos();
-            if (!level.isLoaded(pos)) return;
+            if (!level.isLoaded(pos) || !level.mayInteract(player, pos)) return;
             if (player.distanceToSqr(Vec3.atCenterOf(pos)) > MAX_DISTANCE * MAX_DISTANCE) return;
+            net.minecraft.world.phys.BlockHitResult hit = level.clip(new net.minecraft.world.level.ClipContext(
+                    player.getEyePosition(), Vec3.atCenterOf(pos),
+                    net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                    net.minecraft.world.level.ClipContext.Fluid.NONE, player));
+            if (!hit.getBlockPos().equals(pos)) return;
             if (level.getBlockEntity(pos) instanceof TvBlockEntity tv) {
                 tv.apply(payload.action(), payload.channelId());
             }

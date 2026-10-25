@@ -45,16 +45,44 @@ final class GuideRenderer {
 
     private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("HH:mm");
 
-    enum Target { NONE, ROW, UP, DOWN, BACK }
+    enum Target { NONE, ROW, UP, DOWN, BACK, SOURCE }
 
-    record Hit(Target target, int channelIndex) {
+    record Hit(Target target, int channelIndex, String channelId) {
+        Hit(Target target, int channelIndex) { this(target, channelIndex, ""); }
         static final Hit NONE = new Hit(Target.NONE, -1);
     }
 
     private static final Map<BlockPos, Integer> SCROLL = new HashMap<>();
 
+    private static String source = "";
+    private static List<ChannelRepository.Channel> cachedAll = List.of();
+    private static List<ChannelRepository.Channel> visible = List.of();
+    private static String cachedSource = "";
+
+    static void clear() { SCROLL.clear(); source = ""; cachedAll = List.of(); visible = List.of(); }
+
+    static List<ChannelRepository.Channel> channels() {
+        List<ChannelRepository.Channel> all = ChannelRepository.channels();
+        if (all != cachedAll || !source.equals(cachedSource)) {
+            cachedAll = all;
+            cachedSource = source;
+            visible = source.isEmpty() ? all : all.stream().filter(channel -> source.equals(channel.source())).toList();
+        }
+        return visible;
+    }
+
+    static void nextSource() {
+        List<String> sources = new java.util.ArrayList<>();
+        sources.add("");
+        for (ChannelRepository.Channel channel : ChannelRepository.channels()) {
+            if (!sources.contains(channel.source())) sources.add(channel.source());
+        }
+        source = sources.get((sources.indexOf(source) + 1) % sources.size());
+        SCROLL.clear();
+    }
+
     static int scroll(BlockPos pos, TvBlockEntity tv) {
-        List<ChannelRepository.Channel> channels = ChannelRepository.channels();
+        List<ChannelRepository.Channel> channels = channels();
         int max = Math.max(0, channels.size() - ROWS);
         Integer stored = SCROLL.get(pos);
         if (stored == null) {
@@ -69,11 +97,12 @@ final class GuideRenderer {
     }
 
     static void scrollBy(BlockPos pos, TvBlockEntity tv, int rows) {
-        int max = Math.max(0, ChannelRepository.channels().size() - ROWS);
+        int max = Math.max(0, channels().size() - ROWS);
         SCROLL.put(pos.immutable(), Math.max(0, Math.min(max, scroll(pos, tv) + rows)));
     }
 
     static Hit hit(BlockPos pos, TvBlockEntity tv, float u, float v) {
+        if (v >= 0 && v < HEADER_H && u >= 0 && u < 140) return new Hit(Target.SOURCE, -1);
         if (v >= FOOTER_Y) {
             if (u >= 3 && u < 21) return new Hit(Target.UP, -1);
             if (u >= 23 && u < 41) return new Hit(Target.DOWN, -1);
@@ -83,9 +112,10 @@ final class GuideRenderer {
         if (v < ROW_Y0 || u < CH_X || u >= PROG_X + PROG_W) return Hit.NONE;
         int row = (int) ((v - ROW_Y0) / ROW_STEP);
         if (row >= ROWS || (v - ROW_Y0) - row * ROW_STEP >= ROW_H) return Hit.NONE;
+        List<ChannelRepository.Channel> channels = channels();
         int index = scroll(pos, tv) + row;
-        if (index >= ChannelRepository.channels().size()) return Hit.NONE;
-        return new Hit(Target.ROW, index);
+        if (index >= channels.size()) return Hit.NONE;
+        return new Hit(Target.ROW, index, channels.get(index).id());
     }
 
     static void draw(Canvas c, BlockPos pos, TvBlockEntity tv, RemoteControl.Pointer pointer) {
@@ -93,10 +123,10 @@ final class GuideRenderer {
 
         // Header
         c.panel(0, 0, ScreenGeometry.WIDTH, HEADER_H, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
-        c.text("TV Guide", 5, 5, 1, 0.8f, WHITE);
+        c.text(c.fit(source.isEmpty() ? "All sources >" : source + " >", 132, 0.7f), 5, 5, 1, 0.7f, WHITE);
         c.textRight(LocalTime.now().format(CLOCK), ScreenGeometry.WIDTH - 5, 5, 1, 0.8f, GOLD);
 
-        List<ChannelRepository.Channel> channels = ChannelRepository.channels();
+        List<ChannelRepository.Channel> channels = channels();
         if (channels.isEmpty()) {
             String status = ChannelRepository.status();
             c.textCentered(status.isEmpty() ? "Tuning in..." : status, ScreenGeometry.WIDTH / 2f, 72, 1, 0.8f, SUB);
@@ -146,7 +176,7 @@ final class GuideRenderer {
         button(c, 23, "▼", hover.target() == Target.DOWN);
         if (total > 0) {
             int last = Math.min(total, first + ROWS);
-            String page = (101 + first) + "-" + (100 + last) + " of " + total;
+            String page = (first + 1) + "-" + last + " of " + total;
             c.text(page, 46, FOOTER_Y + 5, 1, 0.7f, SUB);
         }
         if (!tv.channelId().isEmpty()) {

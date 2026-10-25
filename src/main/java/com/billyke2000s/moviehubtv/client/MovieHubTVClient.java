@@ -32,7 +32,11 @@ public final class MovieHubTVClient {
             RemoteControl.tick();
             TvVideoManager.tick();
         });
-        game.addListener((ClientPlayerNetworkEvent.LoggingOut event) -> TvVideoManager.releaseAll());
+        game.addListener((ClientPlayerNetworkEvent.LoggingOut event) -> {
+            TvVideoManager.releaseAll();
+            GuideRenderer.clear();
+            RemoteControl.reset();
+        });
     }
 
     private static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {

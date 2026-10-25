@@ -1,0 +1,7 @@
+{
+  "repository": "billyke2000s/moviehub",
+  "commit": "b4a4b3c2ecde9383dd8094a9ed324dade1b2a39c",
+  "path": "android-tv-launcher/app/src/main/assets/providers/builtin.json",
+  "sha256": "01d392d502ed28a8b80bbfdff16d82a792f4b4ef59affed365bcc26c9b4d0512",
+  "runtimeNote": "Desktop host canonicalizes JSON request-object equality; bundled module bytes are unchanged."
+}

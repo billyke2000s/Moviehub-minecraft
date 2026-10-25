@@ -36,6 +36,12 @@ public final class RemoteControl {
     private static boolean attackHeld;
     private static long pressedAt;
 
+    static void reset() {
+        pointer = null;
+        useHeld = false;
+        attackHeld = false;
+    }
+
     static Pointer pointer() {
         return pointer;
     }
@@ -112,7 +118,8 @@ public final class RemoteControl {
         }
         GuideRenderer.Hit hit = GuideRenderer.hit(p.pos(), tv, p.u(), p.v());
         switch (hit.target()) {
-            case ROW -> send(p.pos(), TvBlockEntity.ACTION_TUNE, ChannelRepository.channels().get(hit.channelIndex()).id());
+            case ROW -> send(p.pos(), TvBlockEntity.ACTION_TUNE, hit.channelId());
+            case SOURCE -> GuideRenderer.nextSource();
             case UP -> GuideRenderer.scrollBy(p.pos(), tv, -GuideRenderer.ROWS);
             case DOWN -> GuideRenderer.scrollBy(p.pos(), tv, GuideRenderer.ROWS);
             case BACK -> send(p.pos(), TvBlockEntity.ACTION_CLOSE_GUIDE, "");

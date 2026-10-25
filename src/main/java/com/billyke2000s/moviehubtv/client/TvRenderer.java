@@ -81,6 +81,8 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         if (channel == null) {
             return ChannelRepository.channels().isEmpty() ? "Tuning in..." : "Channel not available";
         }
+        if (session == null) return "Limit: 4 active TVs";
+        if (!session.error.isEmpty()) return session.error;
         if (!TvVideoManager.videoAvailable()) return "Video needs VLC - see README";
         if (session != null && session.player != null && (session.player.isBroken() || session.player.isEnded())) {
             return "No signal";

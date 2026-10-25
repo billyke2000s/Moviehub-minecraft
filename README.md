@@ -40,14 +40,25 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 
 ## Channels and guide
 
-- Channels: every channel in Moviehub-freelinks
-  [`output/theloop.m3u`](https://github.com/billyke2000s/Moviehub-freelinks/blob/main/output/theloop.m3u),
-  numbered from 101.
-- Guide: [Moviehub-epg `epg.xml.gz`](https://github.com/billyke2000s/Moviehub-epg).
-  It is about 50 MB, so it downloads in the background (at most every 6 hours) and is
-  cached in `.minecraft/moviehubtv-cache`. Only listings for the playlist's channels are kept.
-- Both URLs can be changed in `config/moviehubtv-client.toml` (more playlists can be added,
-  comma-separated), along with volume and hearing range.
+- The Loop playlist is retained, with native regional Pluto and MovieHub's Free-TV/iptv-org lists.
+- The same 15 bundled live-provider modules as the Android app are included: FreeLiveSports,
+  STIRR, TCL, Xumo, LG, Whale, Vizio, Roku, Plex, DaddyLive, Tubi, Samsung, Local Now, ZLive and
+  FreeShot. Channels are discovered in the background; a failed source does not block the others.
+- **Click the source name in the guide header** with the remote to cycle through source filters.
+- Guide: the single combined [Moviehub-epg](https://github.com/billyke2000s/Moviehub-epg) XMLTV file,
+  cached locally. M3U tvg-id and engine guide IDs are matched as well as Pluto IDs.
+- `config/moviehubtv-client.toml` controls custom comma-separated `playlists`, `publicPlaylists`,
+  comma-separated `providers`, `guide`, volume and hearing range. Existing configs receive the new
+  provider/public-list settings without deleting your old playlist value.
+- Required stream headers, child playlists, keys, token renewal and supported media containers go
+  through a local per-TV relay. Up to four TVs decode concurrently on each client.
+- Availability depends on the service and region. Bundled modules have fixture coverage; live
+  playback of every service is **not yet verified in Minecraft**. DRM is not supported.
+- This remains a live-TV mod. Android movie/series browsing, Premiumize and account login screens
+  are not part of it. A private provider's exported HTTP(S) M3U can be configured locally.
+
+See [AUDIT.md](AUDIT.md) for the source comparison, findings and remaining limits, and
+[TESTING.md](TESTING.md) for regression and in-game acceptance checks.
 
 ## Build from source
 
