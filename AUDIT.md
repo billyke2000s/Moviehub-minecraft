@@ -62,8 +62,9 @@ and WATERMeDIA classes. The native video library remains an external install, ne
 ## Validation
 
 Local parser/provider tests pass using the available Java 17 compiler API and cached Rhino/JSON
-jars, with minimal stubs for Minecraft paths, logging and config. That verifies the actual
-parsing/runtime/relay classes, not the Minecraft renderer, event wiring or native decoder.
+jars, without game stubs. Pure parsing is separated into ChannelData so the regression suite
+can run without starting Minecraft. These checks verify actual parsing/runtime/relay classes,
+not the renderer, event wiring or native decoder.
 The full Java 21/NeoForge build is delegated to GitHub Actions because this environment cannot
 download the Gradle distribution. See STATUS.md for the final CI result.
 

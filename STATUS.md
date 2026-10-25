@@ -9,8 +9,9 @@ Version 0.2.0 — source parity and code audit branch.
 - Deterministic core suite: 12 M3U/identity/guide checks, all 15 JS module startup steps, a complete
   STIRR resolver replay, sandbox/URL boundaries, HLS rewrite and header validation, token-origin
   scoping, ZLive advertised-source expansion, 17 PNG and 9 media-carrier fixtures pass.
-- Core Java/parser/provider/relay code compiles using the available Java 17 compiler API and
-  lightweight Minecraft logging/config/path stubs. This is not a full Minecraft compile.
+- Pure parser/provider/relay code compiles and its tests run with the Java 17 compiler API,
+  without any game stubs. The full Minecraft Java 21 code also compiled on the first CI run;
+  the standalone test harness was corrected after that run exposed a game-classpath dependency.
 - `git diff --check` passes.
 
 ## Full build

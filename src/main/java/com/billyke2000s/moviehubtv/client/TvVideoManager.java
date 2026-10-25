@@ -80,7 +80,7 @@ final class TvVideoManager {
     }
 
     /** Called while rendering a TV that should be playing channelId. Returns null if video is unavailable. */
-    static Session play(BlockPos pos, ChannelRepository.Channel channel) {
+    static Session play(BlockPos pos, ChannelData.Channel channel) {
         Session s = SESSIONS.get(pos);
         if (s == null) {
             if (SESSIONS.size() >= 4) return null;

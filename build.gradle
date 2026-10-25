@@ -105,3 +105,6 @@ tasks.register('coreRegressionTest', JavaExec) {
     mainClass = 'com.billyke2000s.moviehubtv.client.CoreRegressionTest'
 }
 tasks.named('check') { dependsOn 'coreRegressionTest' }
+
+// The regression suite uses Java main entrypoints rather than JUnit discovery.
+tasks.named('test') { failOnNoDiscoveredTests = false }

@@ -132,7 +132,7 @@ public final class PlaybackProxy implements AutoCloseable {
                     in.mark(ProviderSegments.HEAD + 1);
                     byte[] head = in.readNBytes(16);
                     in.reset();
-                    boolean playlist = new String(head, StandardCharsets.UTF_8).startsWith("#EXTM3U")
+                    boolean playlist = new String(head, StandardCharsets.UTF_8).replace("\uFEFF", "").startsWith("#EXTM3U")
                             || type != null && type.toLowerCase(Locale.ROOT).contains("mpegurl");
                     if (playlist) {
                         playlists.add(current.toString());
@@ -183,7 +183,13 @@ public final class PlaybackProxy implements AutoCloseable {
     private org.json.JSONObject playlistToken(URI endpoint, org.json.JSONObject body) throws Exception {
         SafeNetwork.publicUrl(endpoint.toString());
         NativeHttp http = new NativeHttp();
-        Map<String, String> tokenHeaders = new java.util.LinkedHashMap<>(headers);
+        Map<String, String> tokenHeaders = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, String> header : headers.entrySet()) {
+            if (origin.getAuthority().equalsIgnoreCase(endpoint.getAuthority())
+                    || PUBLIC_HEADERS.contains(header.getKey().toLowerCase(Locale.ROOT))) {
+                tokenHeaders.put(header.getKey(), header.getValue());
+            }
+        }
         tokenHeaders.put("Content-Type", "application/json");
         org.json.JSONObject response = http.exchange(endpoint.toString(), body == null ? "GET" : "POST",
                 tokenHeaders, body == null ? "" : body.toString(), url -> endpoint.toString().equals(url), true);

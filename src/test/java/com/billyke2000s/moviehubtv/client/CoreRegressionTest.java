@@ -16,9 +16,9 @@ import java.util.zip.GZIPOutputStream;
 public final class CoreRegressionTest {
     private static int checks;
     public static void main(String[] args) throws Exception {
-        List<ChannelRepository.Channel> channels = new ArrayList<>();
+        List<ChannelData.Channel> channels = new ArrayList<>();
         Set<String> seen = new HashSet<>();
-        ChannelRepository.parseM3u("\uFEFF#EXTM3U\n"
+        ChannelData.parseM3u("\uFEFF#EXTM3U\n"
                 + "#EXTINF:-1 tvg-id=\"BBCOne.uk\" group-title=\"News, UK\",BBC One, London\n"
                 + "https://example.com/bbc.m3u8\n"
                 + "#EXTINF:-1,Local file\nfile:///etc/passwd\n"
@@ -32,10 +32,10 @@ public final class CoreRegressionTest {
         check(channels.get(1).id().equals("1234567890abcdef12345678"), "saved Pluto ID compatibility");
         check(channels.get(1).guideId().equals(channels.get(1).id()), "Pluto guide alias");
         String longUrl = "https://example.com/" + "a".repeat(1000);
-        check(ChannelRepository.channelIdFor(longUrl, "x").length() < 256, "bounded packet ID");
-        check(ChannelRepository.matchId("enginestirr:42").equals("enginestirr:42"), "provider guide IDs");
-        check(ChannelRepository.matchId("xmltv:us:1234567890abcdef12345678").equals("1234567890abcdef12345678"), "legacy XMLTV aliases");
-        check(!ChannelRepository.digest("Aa").equals(ChannelRepository.digest("BB")), "avoid Java hash collisions");
+        check(ChannelData.channelIdFor(longUrl, "x").length() < 256, "bounded packet ID");
+        check(ChannelData.matchId("enginestirr:42").equals("enginestirr:42"), "provider guide IDs");
+        check(ChannelData.matchId("xmltv:us:1234567890abcdef12345678").equals("1234567890abcdef12345678"), "legacy XMLTV aliases");
+        check(!ChannelData.digest("Aa").equals(ChannelData.digest("BB")), "avoid Java hash collisions");
         Path file = Files.createTempFile("moviehubtv-guide-", ".xml.gz");
         try {
             DateTimeFormatter time = DateTimeFormatter.ofPattern("yyyyMMddHHmmss Z");
@@ -48,7 +48,7 @@ public final class CoreRegressionTest {
                     + "<programme channel=\"not-wanted\" start=\"" + start + "\" stop=\"" + stop + "\"><title>Ignore</title></programme>"
                     + "<programme channel=\"BBCOne.uk\" start=\"bad\" stop=\"bad\"><title>Bad</title></programme></tv>";
             try (GZIPOutputStream out = new GZIPOutputStream(Files.newOutputStream(file))) { out.write(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
-            var guide = ChannelRepository.parseGuide(file, Set.of("BBCOne.uk", "enginestirr:42"));
+            var guide = ChannelData.parseGuide(file, Set.of("BBCOne.uk", "enginestirr:42"));
             check(guide.size() == 2, "non-Pluto guide coverage");
             check(guide.get("BBCOne.uk").size() == 1, "ignore malformed programme");
             check(guide.get("BBCOne.uk").get(0).title().equals("News & weather"), "XML title decoding");

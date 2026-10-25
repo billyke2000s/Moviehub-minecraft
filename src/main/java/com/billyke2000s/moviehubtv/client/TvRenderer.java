@@ -43,7 +43,7 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
 
         if (tv.isOn()) {
             ChannelRepository.ensureLoaded();
-            ChannelRepository.Channel channel = tv.channelId().isEmpty() ? null : ChannelRepository.channel(tv.channelId());
+            ChannelData.Channel channel = tv.channelId().isEmpty() ? null : ChannelRepository.channel(tv.channelId());
             TvVideoManager.Session session = channel != null ? TvVideoManager.play(pos, channel) : null;
             if (tv.isGuideShowing()) {
                 GuideRenderer.draw(c, pos, tv, pointed ? pointer : null);
@@ -56,7 +56,7 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         pose.popPose();
     }
 
-    private void drawPicture(Canvas c, TvBlockEntity tv, ChannelRepository.Channel channel,
+    private void drawPicture(Canvas c, TvBlockEntity tv, ChannelData.Channel channel,
                              TvVideoManager.Session session, boolean pointed) {
         float w = ScreenGeometry.WIDTH;
         float h = ScreenGeometry.HEIGHT;
@@ -77,7 +77,7 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         if (channel != null && (recentlyTuned || pointed)) drawBanner(c, channel, pointed);
     }
 
-    private static String statusText(ChannelRepository.Channel channel, TvVideoManager.Session session) {
+    private static String statusText(ChannelData.Channel channel, TvVideoManager.Session session) {
         if (channel == null) {
             return ChannelRepository.channels().isEmpty() ? "Tuning in..." : "Channel not available";
         }
@@ -90,12 +90,12 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         return "Tuning in...";
     }
 
-    private void drawBanner(Canvas c, ChannelRepository.Channel channel, boolean pointed) {
+    private void drawBanner(Canvas c, ChannelData.Channel channel, boolean pointed) {
         float y = ScreenGeometry.HEIGHT - 30;
         c.rect(4, y, ScreenGeometry.WIDTH - 8, 26, 1, PANEL);
         c.text(String.valueOf(channel.number()), 8, y + 4, 1.5f, 0.8f, GOLD);
         c.text(c.fit(channel.name(), 140, 0.8f), 30, y + 4, 1.5f, 0.8f, WHITE);
-        ChannelRepository.Programme[] nn = ChannelRepository.nowAndNext(channel.id(), System.currentTimeMillis());
+        ChannelData.Programme[] nn = ChannelRepository.nowAndNext(channel.id(), System.currentTimeMillis());
         String now = nn[0] != null ? "Now: " + nn[0].title() : "Live";
         c.text(c.fit(now, ScreenGeometry.WIDTH - 20, 0.7f), 8, y + 15, 1.5f, 0.7f, SUB);
         if (pointed) c.textRight("Click: guide", ScreenGeometry.WIDTH - 8, y + 4.5f, 1.5f, 0.6f, SUB);

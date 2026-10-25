@@ -4,7 +4,7 @@ import java.net.URI;
 
 /** Network-only media: never lets a playlist launch local files, native options or other protocols. */
 public final class SafeNetwork {
-    public static final String USER_AGENT = "Mozilla/5.0 MovieHubTV-Minecraft";
+    public static final String USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:145.0) Gecko/20100101 Firefox/145.0";
 
     private SafeNetwork() {}
 

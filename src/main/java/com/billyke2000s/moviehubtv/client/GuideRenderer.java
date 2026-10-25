@@ -55,14 +55,14 @@ final class GuideRenderer {
     private static final Map<BlockPos, Integer> SCROLL = new HashMap<>();
 
     private static String source = "";
-    private static List<ChannelRepository.Channel> cachedAll = List.of();
-    private static List<ChannelRepository.Channel> visible = List.of();
+    private static List<ChannelData.Channel> cachedAll = List.of();
+    private static List<ChannelData.Channel> visible = List.of();
     private static String cachedSource = "";
 
     static void clear() { SCROLL.clear(); source = ""; cachedAll = List.of(); visible = List.of(); }
 
-    static List<ChannelRepository.Channel> channels() {
-        List<ChannelRepository.Channel> all = ChannelRepository.channels();
+    static List<ChannelData.Channel> channels() {
+        List<ChannelData.Channel> all = ChannelRepository.channels();
         if (all != cachedAll || !source.equals(cachedSource)) {
             cachedAll = all;
             cachedSource = source;
@@ -74,7 +74,7 @@ final class GuideRenderer {
     static void nextSource() {
         List<String> sources = new java.util.ArrayList<>();
         sources.add("");
-        for (ChannelRepository.Channel channel : ChannelRepository.channels()) {
+        for (ChannelData.Channel channel : ChannelRepository.channels()) {
             if (!sources.contains(channel.source())) sources.add(channel.source());
         }
         source = sources.get((sources.indexOf(source) + 1) % sources.size());
@@ -82,13 +82,13 @@ final class GuideRenderer {
     }
 
     static int scroll(BlockPos pos, TvBlockEntity tv) {
-        List<ChannelRepository.Channel> channels = channels();
+        List<ChannelData.Channel> channels = channels();
         int max = Math.max(0, channels.size() - ROWS);
         Integer stored = SCROLL.get(pos);
         if (stored == null) {
             // First time the guide is seen: start on the page with the current channel.
             int start = 0;
-            ChannelRepository.Channel current = ChannelRepository.channel(tv.channelId());
+            ChannelData.Channel current = ChannelRepository.channel(tv.channelId());
             if (current != null) start = channels.indexOf(current);
             stored = start;
             if (!channels.isEmpty()) SCROLL.put(pos.immutable(), stored);
@@ -112,7 +112,7 @@ final class GuideRenderer {
         if (v < ROW_Y0 || u < CH_X || u >= PROG_X + PROG_W) return Hit.NONE;
         int row = (int) ((v - ROW_Y0) / ROW_STEP);
         if (row >= ROWS || (v - ROW_Y0) - row * ROW_STEP >= ROW_H) return Hit.NONE;
-        List<ChannelRepository.Channel> channels = channels();
+        List<ChannelData.Channel> channels = channels();
         int index = scroll(pos, tv) + row;
         if (index >= channels.size()) return Hit.NONE;
         return new Hit(Target.ROW, index, channels.get(index).id());
@@ -126,7 +126,7 @@ final class GuideRenderer {
         c.text(c.fit(source.isEmpty() ? "All sources >" : source + " >", 132, 0.7f), 5, 5, 1, 0.7f, WHITE);
         c.textRight(LocalTime.now().format(CLOCK), ScreenGeometry.WIDTH - 5, 5, 1, 0.8f, GOLD);
 
-        List<ChannelRepository.Channel> channels = channels();
+        List<ChannelData.Channel> channels = channels();
         if (channels.isEmpty()) {
             String status = ChannelRepository.status();
             c.textCentered(status.isEmpty() ? "Tuning in..." : status, ScreenGeometry.WIDTH / 2f, 72, 1, 0.8f, SUB);
@@ -140,7 +140,7 @@ final class GuideRenderer {
         for (int row = 0; row < ROWS; row++) {
             int index = first + row;
             if (index >= channels.size()) break;
-            ChannelRepository.Channel ch = channels.get(index);
+            ChannelData.Channel ch = channels.get(index);
             float y = ROW_Y0 + row * ROW_STEP;
             boolean hovered = hover.target() == Target.ROW && hover.channelIndex() == index;
             boolean tuned = ch.id().equals(tv.channelId());
@@ -153,7 +153,7 @@ final class GuideRenderer {
 
             // Programme cell: now and next
             c.panel(PROG_X, y, PROG_W, ROW_H, 0.5f, hovered ? PROG_HOVER : PROG, EDGE_LIGHT, EDGE_DARK);
-            ChannelRepository.Programme[] nn = ChannelRepository.nowAndNext(ch.id(), now);
+            ChannelData.Programme[] nn = ChannelRepository.nowAndNext(ch.id(), now);
             String nowTitle = nn[0] != null ? nn[0].title() : "No listings";
             c.text(c.fit(nowTitle, PROG_W - 6, 0.75f), PROG_X + 3, y + 2, 1, 0.75f, nn[0] != null ? WHITE : SUB);
             if (nn[1] != null) {
