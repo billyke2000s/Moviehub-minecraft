@@ -22,7 +22,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build with Gradle
-        run: ./gradlew build --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew build --stacktrace 2>&1 | tee build.log
+
+      - name: Report build errors
+        if: failure()
+        run: |
+          msg=$(grep -E "error:|warning: \[removal\]|What went wrong|Could not|Caused by|> " -A2 build.log | head -150 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+          echo "::error title=Build failed::$msg"
 
       - name: Upload mod jar
         uses: actions/upload-artifact@v4
