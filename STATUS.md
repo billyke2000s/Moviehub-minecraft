@@ -9,10 +9,11 @@ Version 0.1.0 (first build).
   Parsing the 52 MB guide takes about 7 seconds in the background.
 - Screen placement maths: the drawing position and the cursor hit position agree for all four facings.
 
+- It compiles: the GitHub Actions build passes and publishes `moviehubtv-0.1.0.jar`
+  (the jar contains the classes, assets, recipes and mod metadata).
+
 ## Not yet verified
 
-- That it compiles: this was written where the Minecraft and NeoForge servers are blocked,
-  so the first real compile is the GitHub Actions build.
 - Anything in-game: rendering, the cursor feel, video playback, sound, recipes.
 - WATERMeDIA texture orientation (picture could be upside down) and Pluto streams playing
   from the UK through VLC.
