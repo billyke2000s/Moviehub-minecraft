@@ -13,6 +13,7 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 repositories {
+    mavenCentral()
     // Modrinth's Maven, used only to compile against WATERMeDIA.
     exclusiveContent {
         forRepository {
@@ -59,6 +60,18 @@ configurations {
 dependencies {
     compileOnly "maven.modrinth:watermedia:${watermedia_version}"
     localRuntime "maven.modrinth:watermedia:${watermedia_version}"
+    jarJar(implementation('org.mozilla:rhino:1.9.1')) {
+        version {
+            strictly '[1.9.1,2.0)'
+            prefer '1.9.1'
+        }
+    }
+    jarJar(implementation('org.json:json:20250517')) {
+        version {
+            strictly '[20250517,20260517)'
+            prefer '20250517'
+        }
+    }
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
@@ -84,3 +97,14 @@ neoForge.ideSyncTask generateModMetadata
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+// A small, deterministic suite: no provider accounts, live network or running Minecraft required.
+tasks.register('coreRegressionTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.billyke2000s.moviehubtv.client.CoreRegressionTest'
+}
+tasks.named('check') { dependsOn 'coreRegressionTest' }
+
+// The regression suite uses Java main entrypoints rather than JUnit discovery.
+tasks.named('test') { failOnNoDiscoveredTests = false }
