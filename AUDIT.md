@@ -65,8 +65,11 @@ Local parser/provider tests pass using the available Java 17 compiler API and ca
 jars, without game stubs. Pure parsing is separated into ChannelData so the regression suite
 can run without starting Minecraft. These checks verify actual parsing/runtime/relay classes,
 not the renderer, event wiring or native decoder.
-The full Java 21/NeoForge build is delegated to GitHub Actions because this environment cannot
-download the Gradle distribution. See STATUS.md for the final CI result.
+The full Java 21/NeoForge build and regression suite passed in
+[GitHub Actions run 40225431725](https://github.com/billyke2000s/Moviehub-minecraft/actions/runs/40225431725)
+for code commit `78d42e233e10e4c42be621a1e4280461b3177611`, producing the version 0.2.0 mod jar.
+The initial CI run compiled the mod but exposed a standalone harness dependency on game config;
+separating the pure parser fixed that dependency. See STATUS.md for the complete validation limits.
 
 ## Remaining limitations and risks
 

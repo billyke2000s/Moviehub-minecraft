@@ -16,9 +16,11 @@ Version 0.2.0 — source parity and code audit branch.
 
 ## Full build
 
-Pending GitHub Actions Java 21/NeoForge compilation and regression run. Local Gradle cannot
-fetch its distribution because the build-download hosts are unreachable in this environment.
-The final result will be recorded after CI completes.
+[GitHub Actions run 40225431725](https://github.com/billyke2000s/Moviehub-minecraft/actions/runs/40225431725)
+passed the full Java 21/NeoForge build and regression suite for code commit
+`78d42e233e10e4c42be621a1e4280461b3177611`. The `moviehubtv-jar` artifact contains
+`moviehubtv-0.2.0.jar`. The earlier harness-only failure is fixed. Local Gradle downloads remain
+unavailable; these full-build results come from CI. No release was published.
 
 ## Not yet verified
 
