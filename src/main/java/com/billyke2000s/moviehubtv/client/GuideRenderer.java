@@ -89,17 +89,17 @@ final class GuideRenderer {
     }
 
     static void draw(Canvas c, BlockPos pos, TvBlockEntity tv, RemoteControl.Pointer pointer) {
-        c.rect(0, 0, ScreenGeometry.WIDTH, ScreenGeometry.HEIGHT, 0, BG);
+        c.rect(0, 0, ScreenGeometry.GUIDE_WIDTH, ScreenGeometry.GUIDE_HEIGHT, 0, BG);
 
         // Header
-        c.panel(0, 0, ScreenGeometry.WIDTH, HEADER_H, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
+        c.panel(0, 0, ScreenGeometry.GUIDE_WIDTH, HEADER_H, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
         c.text("TV Guide", 5, 5, 1, 0.8f, WHITE);
-        c.textRight(LocalTime.now().format(CLOCK), ScreenGeometry.WIDTH - 5, 5, 1, 0.8f, GOLD);
+        c.textRight(LocalTime.now().format(CLOCK), ScreenGeometry.GUIDE_WIDTH - 5, 5, 1, 0.8f, GOLD);
 
         List<ChannelRepository.Channel> channels = ChannelRepository.channels();
         if (channels.isEmpty()) {
             String status = ChannelRepository.status();
-            c.textCentered(status.isEmpty() ? "Tuning in..." : status, ScreenGeometry.WIDTH / 2f, 72, 1, 0.8f, SUB);
+            c.textCentered(status.isEmpty() ? "Tuning in..." : status, ScreenGeometry.GUIDE_WIDTH / 2f, 72, 1, 0.8f, SUB);
             drawFooter(c, tv, pointer, 0, 0, Hit.NONE);
             return;
         }
@@ -141,7 +141,7 @@ final class GuideRenderer {
     }
 
     private static void drawFooter(Canvas c, TvBlockEntity tv, RemoteControl.Pointer pointer, int first, int total, Hit hover) {
-        c.panel(0, FOOTER_Y, ScreenGeometry.WIDTH, ScreenGeometry.HEIGHT - FOOTER_Y, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
+        c.panel(0, FOOTER_Y, ScreenGeometry.GUIDE_WIDTH, ScreenGeometry.GUIDE_HEIGHT - FOOTER_Y, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
         button(c, 3, "▲", hover.target() == Target.UP);
         button(c, 23, "▼", hover.target() == Target.DOWN);
         if (total > 0) {

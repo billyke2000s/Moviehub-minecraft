@@ -1,5 +1,6 @@
 package com.billyke2000s.moviehubtv;
 
+import com.billyke2000s.moviehubtv.block.BigTvBlock;
 import com.billyke2000s.moviehubtv.block.TvBlock;
 import com.billyke2000s.moviehubtv.block.TvBlockEntity;
 import com.billyke2000s.moviehubtv.item.RemoteItem;
@@ -13,6 +14,7 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -37,8 +39,29 @@ public final class ModRegistry {
                     .sound(SoundType.METAL)
                     .lightLevel(state -> state.getValue(TvBlock.POWERED) ? 6 : 0)));
 
+    /** Bigger TVs, crafted from normal TVs: 2 side by side, 4 in a square, 6 in a 3x2 block. */
+    public static final DeferredBlock<BigTvBlock> TV_WIDE = BLOCKS.register("tv_wide", () -> new BigTvBlock(2, 1, bigTvProperties()));
+    public static final DeferredBlock<BigTvBlock> TV_LARGE = BLOCKS.register("tv_large", () -> new BigTvBlock(2, 2, bigTvProperties()));
+    public static final DeferredBlock<BigTvBlock> TV_LARGE_WIDE = BLOCKS.register("tv_large_wide", () -> new BigTvBlock(3, 2, bigTvProperties()));
+
+    private static BlockBehaviour.Properties bigTvProperties() {
+        return BlockBehaviour.Properties.of()
+                .mapColor(MapColor.METAL)
+                .strength(2.0F, 6.0F)
+                .requiresCorrectToolForDrops()
+                .sound(SoundType.METAL)
+                .pushReaction(PushReaction.BLOCK) // pistons must not split a multi-block TV
+                .lightLevel(state -> state.getValue(TvBlock.POWERED) ? 6 : 0);
+    }
+
     public static final DeferredItem<BlockItem> TV_ITEM =
             ITEMS.register("tv", () -> new BlockItem(TV.get(), new Item.Properties()));
+    public static final DeferredItem<BlockItem> TV_WIDE_ITEM =
+            ITEMS.register("tv_wide", () -> new BlockItem(TV_WIDE.get(), new Item.Properties()));
+    public static final DeferredItem<BlockItem> TV_LARGE_ITEM =
+            ITEMS.register("tv_large", () -> new BlockItem(TV_LARGE.get(), new Item.Properties()));
+    public static final DeferredItem<BlockItem> TV_LARGE_WIDE_ITEM =
+            ITEMS.register("tv_large_wide", () -> new BlockItem(TV_LARGE_WIDE.get(), new Item.Properties()));
     public static final DeferredItem<Item> BATTERY =
             ITEMS.register("battery", () -> new Item(new Item.Properties()));
     public static final DeferredItem<RemoteItem> REMOTE =
@@ -46,7 +69,8 @@ public final class ModRegistry {
 
     @SuppressWarnings("DataFlowIssue") // null data fixer type is the vanilla convention for mod block entities
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TvBlockEntity>> TV_BLOCK_ENTITY =
-            BLOCK_ENTITIES.register("tv", () -> BlockEntityType.Builder.of(TvBlockEntity::new, TV.get()).build(null));
+            BLOCK_ENTITIES.register("tv", () -> BlockEntityType.Builder.of(TvBlockEntity::new,
+                    TV.get(), TV_WIDE.get(), TV_LARGE.get(), TV_LARGE_WIDE.get()).build(null));
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("main",
             () -> CreativeModeTab.builder()
@@ -54,6 +78,9 @@ public final class ModRegistry {
                     .icon(() -> new ItemStack(TV_ITEM.get()))
                     .displayItems((params, output) -> {
                         output.accept(TV_ITEM.get());
+                        output.accept(TV_WIDE_ITEM.get());
+                        output.accept(TV_LARGE_ITEM.get());
+                        output.accept(TV_LARGE_WIDE_ITEM.get());
                         output.accept(REMOTE.get());
                         output.accept(BATTERY.get());
                     })

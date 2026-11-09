@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.phys.AABB;
 
 /** Draws the TV picture, the guide and the remote's cursor onto the TV's screen. */
 public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
@@ -37,8 +38,9 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         if (!tv.isOn() && !pointed) return;
 
         Direction facing = tv.getBlockState().getValue(TvBlock.FACING);
+        ScreenGeometry.Screen screen = ScreenGeometry.screenFor(tv.getBlockState());
         pose.pushPose();
-        ScreenGeometry.applyScreenTransform(pose, facing);
+        ScreenGeometry.applyScreenTransform(pose, facing, screen);
         Canvas c = new Canvas(pose, buffers, font);
 
         if (tv.isOn()) {
@@ -46,9 +48,9 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
             ChannelRepository.Channel channel = tv.channelId().isEmpty() ? null : ChannelRepository.channel(tv.channelId());
             TvVideoManager.Session session = channel != null ? TvVideoManager.play(pos, channel) : null;
             if (tv.isGuideShowing()) {
-                GuideRenderer.draw(c, pos, tv, pointed ? pointer : null);
+                drawGuide(c, pos, tv, screen, pointed ? pointer : null);
             } else {
-                drawPicture(c, tv, channel, session, pointed);
+                drawPicture(c, screen, channel, session, pointed);
             }
         }
 
@@ -56,10 +58,25 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         pose.popPose();
     }
 
-    private void drawPicture(Canvas c, TvBlockEntity tv, ChannelRepository.Channel channel,
+    /** The guide has a fixed layout; on bigger screens it is scaled up and centred. */
+    private static void drawGuide(Canvas c, BlockPos pos, TvBlockEntity tv, ScreenGeometry.Screen screen,
+                                  RemoteControl.Pointer pointer) {
+        if (screen.width() != ScreenGeometry.GUIDE_WIDTH || screen.height() != ScreenGeometry.GUIDE_HEIGHT) {
+            c.rect(0, 0, screen.width(), screen.height(), 0, BLACK);
+        }
+        RemoteControl.Pointer guidePointer = pointer == null ? null
+                : new RemoteControl.Pointer(pointer.pos(), screen.toGuideU(pointer.u()), screen.toGuideV(pointer.v()));
+        c.pose.pushPose();
+        c.pose.translate(screen.guideX(), screen.guideY(), 0);
+        c.pose.scale(screen.guideScale(), screen.guideScale(), 1f);
+        GuideRenderer.draw(c, pos, tv, guidePointer);
+        c.pose.popPose();
+    }
+
+    private void drawPicture(Canvas c, ScreenGeometry.Screen screen, ChannelRepository.Channel channel,
                              TvVideoManager.Session session, boolean pointed) {
-        float w = ScreenGeometry.WIDTH;
-        float h = ScreenGeometry.HEIGHT;
+        float w = screen.width();
+        float h = screen.height();
         c.rect(0, 0, w, h, 0, BLACK);
 
         if (session != null && session.hasPicture()) {
@@ -74,7 +91,7 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         }
 
         boolean recentlyTuned = session != null && System.currentTimeMillis() - session.tunedAt < BANNER_MS;
-        if (channel != null && (recentlyTuned || pointed)) drawBanner(c, channel, pointed);
+        if (channel != null && (recentlyTuned || pointed)) drawBanner(c, screen, channel, pointed);
     }
 
     private static String statusText(ChannelRepository.Channel channel, TvVideoManager.Session session) {
@@ -88,15 +105,16 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         return "Tuning in...";
     }
 
-    private void drawBanner(Canvas c, ChannelRepository.Channel channel, boolean pointed) {
-        float y = ScreenGeometry.HEIGHT - 30;
-        c.rect(4, y, ScreenGeometry.WIDTH - 8, 26, 1, PANEL);
+    private void drawBanner(Canvas c, ScreenGeometry.Screen screen, ChannelRepository.Channel channel, boolean pointed) {
+        float w = screen.width();
+        float y = screen.height() - 30;
+        c.rect(4, y, w - 8, 26, 1, PANEL);
         c.text(String.valueOf(channel.number()), 8, y + 4, 1.5f, 0.8f, GOLD);
         c.text(c.fit(channel.name(), 140, 0.8f), 30, y + 4, 1.5f, 0.8f, WHITE);
         ChannelRepository.Programme[] nn = ChannelRepository.nowAndNext(channel.id(), System.currentTimeMillis());
         String now = nn[0] != null ? "Now: " + nn[0].title() : "Live";
-        c.text(c.fit(now, ScreenGeometry.WIDTH - 20, 0.7f), 8, y + 15, 1.5f, 0.7f, SUB);
-        if (pointed) c.textRight("Click: guide", ScreenGeometry.WIDTH - 8, y + 4.5f, 1.5f, 0.6f, SUB);
+        c.text(c.fit(now, w - 20, 0.7f), 8, y + 15, 1.5f, 0.7f, SUB);
+        if (pointed) c.textRight("Click: guide", w - 8, y + 4.5f, 1.5f, 0.6f, SUB);
     }
 
     private static void drawCursor(Canvas c, RemoteControl.Pointer pointer) {
@@ -104,6 +122,12 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         float x = pointer.u() - HOTSPOT_X * size;
         float y = pointer.v() - HOTSPOT_Y * size;
         c.image(Canvas.CURSOR, x, y, size, size, 3f, 0, 0, 1, 1, WHITE);
+    }
+
+    /** Big TVs draw well beyond the controller block, so widen the culling box to cover them. */
+    @Override
+    public AABB getRenderBoundingBox(TvBlockEntity blockEntity) {
+        return new AABB(blockEntity.getBlockPos()).inflate(3.5);
     }
 
     @Override

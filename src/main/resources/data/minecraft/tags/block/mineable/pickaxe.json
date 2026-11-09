@@ -1,6 +1,9 @@
 {
   "replace": false,
   "values": [
-    "moviehubtv:tv"
+    "moviehubtv:tv",
+    "moviehubtv:tv_wide",
+    "moviehubtv:tv_large",
+    "moviehubtv:tv_large_wide"
   ]
 }

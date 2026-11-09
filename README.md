@@ -12,7 +12,7 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 2. Put both jars in your `mods` folder:
    - **MovieHub TV**: download `moviehubtv-*.jar` from the
      [latest build](https://github.com/billyke2000s/moviehub-minecraft/releases/tag/latest).
-   - **WATERMeDIA 2.1.37 or newer** (the video player library):
+   - **WATERMeDIA 2.1.x** (2.1.37 or newer, **not 3.x**: WATERMeDIA 3 removed the VLC player this mod uses):
      [CurseForge](https://www.curseforge.com/minecraft/mc-mods/watermedia) or
      [Modrinth](https://modrinth.com/mod/watermedia).
 3. Windows works out of the box. macOS and Linux need [VLC](https://www.videolan.org/vlc/) installed
@@ -25,6 +25,13 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 | Battery | Redstone, iron ingot, redstone in a vertical column |
 | TV | Iron ingots down both sides, battery top and bottom, glass in the middle |
 | Remote | Any button, battery, iron ingot in a vertical column |
+| Wide TV (2x1) | 2 TVs side by side |
+| Large TV (2x2) | 4 TVs in a square |
+| Large Wide TV (3x2) | 6 TVs: 3 across, 2 down |
+
+Big TVs grow to your right and upwards from where you place them (they won't place if something
+is in the way). Breaking any part removes the whole TV and gives it back. The remote works on any
+part of the screen; the guide is scaled up to fit.
 
 ## Using it
 

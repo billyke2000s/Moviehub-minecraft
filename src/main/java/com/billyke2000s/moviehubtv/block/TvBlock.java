@@ -41,6 +41,17 @@ public class TvBlock extends HorizontalDirectionalBlock implements EntityBlock {
         builder.add(FACING, POWERED);
     }
 
+    /** Screen size in blocks. The normal TV is one block. */
+    public int widthBlocks() { return 1; }
+
+    public int heightBlocks() { return 1; }
+
+    /** The block holding the TV's state (itself for a one-block TV). */
+    public BlockPos controllerPos(BlockState state, BlockPos pos) { return pos; }
+
+    /** The viewer's right-hand direction when looking at a screen that faces {@code facing}. */
+    public static Direction rightOf(Direction facing) { return facing.getCounterClockWise(); }
+
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
         return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());

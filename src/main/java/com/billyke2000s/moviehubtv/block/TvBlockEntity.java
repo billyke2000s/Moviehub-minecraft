@@ -55,7 +55,11 @@ public class TvBlockEntity extends BlockEntity {
         setChanged();
         if (level == null) return;
         BlockState state = getBlockState();
-        if (state.getValue(TvBlock.POWERED) != on) {
+        if (state.getBlock() instanceof BigTvBlock big) {
+            big.setPoweredAll(level, worldPosition, state, on);
+            BlockState now = level.getBlockState(worldPosition);
+            level.sendBlockUpdated(worldPosition, now, now, Block.UPDATE_CLIENTS);
+        } else if (state.getValue(TvBlock.POWERED) != on) {
             level.setBlock(worldPosition, state.setValue(TvBlock.POWERED, on), Block.UPDATE_ALL);
         } else {
             level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);

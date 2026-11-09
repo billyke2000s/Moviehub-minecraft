@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -52,12 +53,16 @@ public final class RemoteControl {
         HitResult hit = mc.player.pick(RANGE, partialTick, false);
         if (!(hit instanceof BlockHitResult blockHit) || hit.getType() != HitResult.Type.BLOCK) return;
         BlockState state = mc.level.getBlockState(blockHit.getBlockPos());
-        if (!(state.getBlock() instanceof TvBlock)) return;
+        if (!(state.getBlock() instanceof TvBlock tvBlock)) return;
         Direction facing = state.getValue(TvBlock.FACING);
         if (blockHit.getDirection() != facing) return;
-        float[] uv = ScreenGeometry.toCanvas(blockHit.getBlockPos(), facing, blockHit.getLocation());
+        // Any part of a big TV points at its controller block, where the screen is drawn from.
+        BlockPos controller = tvBlock.controllerPos(state, blockHit.getBlockPos());
+        BlockState controllerState = mc.level.getBlockState(controller);
+        if (!(controllerState.getBlock() instanceof TvBlock)) return;
+        float[] uv = ScreenGeometry.toCanvas(controller, facing, blockHit.getLocation(), ScreenGeometry.screenFor(controllerState));
         if (uv == null) return;
-        pointer = new Pointer(blockHit.getBlockPos().immutable(), uv[0], uv[1]);
+        pointer = new Pointer(controller.immutable(), uv[0], uv[1]);
     }
 
     static void tick() {
@@ -110,7 +115,8 @@ public final class RemoteControl {
             send(p.pos(), TvBlockEntity.ACTION_OPEN_GUIDE, "");
             return;
         }
-        GuideRenderer.Hit hit = GuideRenderer.hit(p.pos(), tv, p.u(), p.v());
+        ScreenGeometry.Screen screen = ScreenGeometry.screenFor(tv.getBlockState());
+        GuideRenderer.Hit hit = GuideRenderer.hit(p.pos(), tv, screen.toGuideU(p.u()), screen.toGuideV(p.v()));
         switch (hit.target()) {
             case ROW -> send(p.pos(), TvBlockEntity.ACTION_TUNE, ChannelRepository.channels().get(hit.channelIndex()).id());
             case UP -> GuideRenderer.scrollBy(p.pos(), tv, -GuideRenderer.ROWS);
@@ -120,7 +126,7 @@ public final class RemoteControl {
         }
     }
 
-    private static Object tvAt(BlockPos pos) {
+    private static BlockEntity tvAt(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         return mc.level == null ? null : mc.level.getBlockEntity(pos);
     }

@@ -5,5 +5,8 @@
   "item.moviehubtv.remote": "Remote",
   "item.moviehubtv.remote.tip1": "Aim at a TV screen to show the cursor",
   "item.moviehubtv.remote.tip2": "Right-click: select   Left-click: power",
-  "item.moviehubtv.remote.tip3": "Scroll wheel: move through the guide"
+  "item.moviehubtv.remote.tip3": "Scroll wheel: move through the guide",
+  "block.moviehubtv.tv_wide": "Wide TV",
+  "block.moviehubtv.tv_large": "Large TV",
+  "block.moviehubtv.tv_large_wide": "Large Wide TV"
 }

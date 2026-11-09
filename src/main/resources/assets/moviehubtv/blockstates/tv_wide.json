@@ -1,0 +1,94 @@
+{
+  "variants": {
+    "facing=north,part_x=0,part_y=0": {
+      "model": "moviehubtv:block/tv_big_l_tb"
+    },
+    "facing=north,part_x=0,part_y=1": {
+      "model": "moviehubtv:block/tv_big_l_tb"
+    },
+    "facing=north,part_x=1,part_y=0": {
+      "model": "moviehubtv:block/tv_big_r_tb"
+    },
+    "facing=north,part_x=1,part_y=1": {
+      "model": "moviehubtv:block/tv_big_r_tb"
+    },
+    "facing=north,part_x=2,part_y=0": {
+      "model": "moviehubtv:block/tv_big_r_tb"
+    },
+    "facing=north,part_x=2,part_y=1": {
+      "model": "moviehubtv:block/tv_big_r_tb"
+    },
+    "facing=east,part_x=0,part_y=0": {
+      "model": "moviehubtv:block/tv_big_l_tb",
+      "y": 90
+    },
+    "facing=east,part_x=0,part_y=1": {
+      "model": "moviehubtv:block/tv_big_l_tb",
+      "y": 90
+    },
+    "facing=east,part_x=1,part_y=0": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 90
+    },
+    "facing=east,part_x=1,part_y=1": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 90
+    },
+    "facing=east,part_x=2,part_y=0": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 90
+    },
+    "facing=east,part_x=2,part_y=1": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 90
+    },
+    "facing=south,part_x=0,part_y=0": {
+      "model": "moviehubtv:block/tv_big_l_tb",
+      "y": 180
+    },
+    "facing=south,part_x=0,part_y=1": {
+      "model": "moviehubtv:block/tv_big_l_tb",
+      "y": 180
+    },
+    "facing=south,part_x=1,part_y=0": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 180
+    },
+    "facing=south,part_x=1,part_y=1": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 180
+    },
+    "facing=south,part_x=2,part_y=0": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 180
+    },
+    "facing=south,part_x=2,part_y=1": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 180
+    },
+    "facing=west,part_x=0,part_y=0": {
+      "model": "moviehubtv:block/tv_big_l_tb",
+      "y": 270
+    },
+    "facing=west,part_x=0,part_y=1": {
+      "model": "moviehubtv:block/tv_big_l_tb",
+      "y": 270
+    },
+    "facing=west,part_x=1,part_y=0": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 270
+    },
+    "facing=west,part_x=1,part_y=1": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 270
+    },
+    "facing=west,part_x=2,part_y=0": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 270
+    },
+    "facing=west,part_x=2,part_y=1": {
+      "model": "moviehubtv:block/tv_big_r_tb",
+      "y": 270
+    }
+  }
+}

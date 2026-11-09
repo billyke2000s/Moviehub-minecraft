@@ -30,6 +30,6 @@ Live TV from MovieHub inside Minecraft: a TV block with a Sky-style guide and a 
     modId="watermedia"
     type="required"
     reason="Plays the live TV video streams."
-    versionRange="[${watermedia_version},)"
+    versionRange="[${watermedia_version},3)"
     ordering="AFTER"
     side="CLIENT"

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "TT"
+  ],
+  "key": {
+    "T": {
+      "item": "moviehubtv:tv"
+    }
+  },
+  "result": {
+    "id": "moviehubtv:tv_wide",
+    "count": 1
+  }
+}
