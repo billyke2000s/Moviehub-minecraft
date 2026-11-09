@@ -49,12 +49,14 @@ part of the screen; the guide is scaled up to fit.
 
 - Channels: every channel in Moviehub-freelinks
   [`output/theloop.m3u`](https://github.com/billyke2000s/Moviehub-freelinks/blob/main/output/theloop.m3u),
-  numbered from 101.
+  numbered from 101, then [Free-TV](https://github.com/Free-TV/IPTV) (free channels streamed by the
+  broadcasters themselves, e.g. BBC, STV, S4C), UK channels first. Free-TV's on-demand groups and
+  streams served from bare IP addresses (third-party re-streams) are skipped.
 - Guide: [Moviehub-epg `epg.xml.gz`](https://github.com/billyke2000s/Moviehub-epg).
   It is about 50 MB, so it downloads in the background (at most every 6 hours) and is
   cached in `.minecraft/moviehubtv-cache`. Only listings for the playlist's channels are kept.
-- Both URLs can be changed in `config/moviehubtv-client.toml` (more playlists can be added,
-  comma-separated), along with volume and hearing range.
+- The URLs can be changed in `config/moviehubtv-client.toml`: `playlists` and `extraPlaylists`
+  (comma-separated; clear `extraPlaylists` to hide Free-TV), `guide`, volume and hearing range.
 
 ## Build from source
 

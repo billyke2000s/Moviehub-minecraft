@@ -1,6 +1,6 @@
 # Status
 
-Version 0.2.0: adds Wide (2x1), Large (2x2) and Large Wide (3x2) TVs.
+Version 0.3.0: adds Free-TV channels (0.2.0 added Wide, Large and Large Wide TVs).
 
 ## Verified
 
@@ -16,9 +16,15 @@ Version 0.2.0: adds Wide (2x1), Large (2x2) and Large Wide (3x2) TVs.
   the guide (452 with listings) load. With WATERMeDIA 3.x installed no video plays, because WATERMeDIA 3
   removed `org.watermedia.api.player` (VLC). 0.2.0 therefore requires WATERMeDIA [2.1.37, 3).
 
+- 0.3.0 channel loading, run outside Minecraft with the real `parseM3u`/`parseGuide` against the live
+  files (9 November 2026): The Loop 456 + Free-TV 1,771 = 2,227 channels; UK Free-TV channels number
+  from 557; guide listings for 673 channels (was 452), including 44 of 52 UK Free-TV channels
+  (BBC One, BBC Two, S4C checked). Parsing the 58 MB guide took about 3 seconds.
+
 ## Not yet verified
 
-- Video playback with WATERMeDIA 2.1.37 in-game.
+- Video playback with WATERMeDIA 2.1.37 in-game, including whether Free-TV streams play
+  (some are geo-blocked to their country).
 - Big TVs (0.2.0): placing, breaking, rendering across blocks and remote aiming are compile-checked only.
   The screen maths for the one-block TV is unchanged (same numbers as 0.1.0).
 - Anything in-game: rendering, the cursor feel, video playback, sound, recipes.
@@ -29,5 +35,7 @@ Version 0.2.0: adds Wide (2x1), Large (2x2) and Large Wide (3x2) TVs.
 
 - Big TVs only come in 2x1, 2x2 and 3x2; they show the guide centred at its normal shape.
 - No channel logos in the guide.
+- With over 2,000 channels the guide is long; ▲/▼ move a page of 7 at a time.
+- Samsung TV Plus, Plex, Roku and the other services MovieHub's Android app adapts are not included.
 - While the guide is open over a tuned channel, the sound keeps playing but the picture is hidden.
 - The guide is drawn on the block itself, so it is small; read it close up.

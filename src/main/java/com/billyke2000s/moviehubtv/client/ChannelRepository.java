@@ -45,6 +45,11 @@ public final class ChannelRepository {
     private static final Duration PLAYLIST_MAX_AGE = Duration.ofHours(6);
     private static final Duration GUIDE_MAX_AGE = Duration.ofHours(6);
     private static final Pattern PLUTO_ID = Pattern.compile("/channel/([0-9a-fA-F]{24})/");
+    private static final Pattern ATTR = Pattern.compile("([a-zA-Z-]+)=\"([^\"]*)\"");
+    /** Hosts that are bare IP addresses are third-party re-streams, not broadcasters; they are skipped. */
+    private static final Pattern IP_HOST = Pattern.compile("^https?://\\d{1,3}(\\.\\d{1,3}){3}(:\\d+)?/");
+    /** Country groups listed first, so local channels get the lowest numbers. */
+    private static final String PREFERRED_GROUP = "UK";
     private static final DateTimeFormatter XMLTV_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss Z");
 
     private static volatile List<Channel> channels = List.of();
@@ -99,7 +104,8 @@ public final class ChannelRepository {
             Path cache = FMLPaths.GAMEDIR.get().resolve("moviehubtv-cache");
             Files.createDirectories(cache);
 
-            String[] urls = ClientConfig.get(ClientConfig.PLAYLISTS, ClientConfig.DEFAULT_PLAYLISTS).split(",");
+            String[] urls = (ClientConfig.get(ClientConfig.PLAYLISTS, ClientConfig.DEFAULT_PLAYLISTS) + ","
+                    + ClientConfig.get(ClientConfig.EXTRA_PLAYLISTS, ClientConfig.DEFAULT_EXTRA_PLAYLISTS)).split(",");
             List<Channel> list = new ArrayList<>();
             Set<String> seen = new HashSet<>();
             for (int i = 0; i < urls.length; i++) {
@@ -167,27 +173,82 @@ public final class ChannelRepository {
         }
     }
 
+    /** One playlist entry before numbering. */
+    private record Entry(String id, String name, String url, boolean preferred) {}
+
+    /**
+     * Adds a playlist's channels in order, but with entries in the {@link #PREFERRED_GROUP} group first.
+     * Skips on-demand ("VOD ...") groups and streams served from bare IP addresses.
+     */
     static void parseM3u(String text, List<Channel> out, Set<String> seen) {
+        List<Entry> entries = new ArrayList<>();
         String name = null;
+        Map<String, String> attrs = Map.of();
         for (String raw : text.split("\\R")) {
             String line = raw.trim();
             if (line.isEmpty()) continue;
             if (line.startsWith("#EXTINF")) {
                 int comma = line.lastIndexOf(',');
-                name = comma >= 0 ? line.substring(comma + 1).trim() : "Channel";
+                name = cleanName(comma >= 0 ? line.substring(comma + 1).trim() : "Channel");
+                attrs = attributes(comma >= 0 ? line.substring(0, comma) : line);
             } else if (!line.startsWith("#") && name != null) {
-                String id = channelIdFor(line, name);
-                if (seen.add(id)) out.add(new Channel(101 + out.size(), id, name, line));
+                String group = attrs.getOrDefault("group-title", "");
+                if (!group.startsWith("VOD") && !IP_HOST.matcher(line).find()) {
+                    entries.add(new Entry(channelIdFor(line, name, attrs.get("tvg-id")), name, line,
+                            PREFERRED_GROUP.equalsIgnoreCase(group)));
+                }
                 name = null;
+                attrs = Map.of();
+            }
+        }
+        for (int pass = 0; pass < 2; pass++) {
+            for (Entry e : entries) {
+                if (e.preferred() != (pass == 0)) continue;
+                if (seen.add(e.id())) out.add(new Channel(101 + out.size(), e.id(), e.name(), e.url()));
             }
         }
     }
 
-    /** Pluto channels use their Pluto ID so the guide can match them; anything else uses its URL. */
-    static String channelIdFor(String url, String name) {
+    static Map<String, String> attributes(String extinf) {
+        Map<String, String> map = new HashMap<>();
+        Matcher m = ATTR.matcher(extinf);
+        while (m.find()) map.put(m.group(1).toLowerCase(), m.group(2));
+        return map;
+    }
+
+    /** Drops playlist markers such as the geo-block (Ⓖ) and YouTube (Ⓨ) symbols, which Minecraft's font lacks. */
+    static String cleanName(String name) {
+        String cleaned = name.replaceAll("[\\u24B6-\\u24E9]", "").trim();
+        return cleaned.isEmpty() ? name : cleaned;
+    }
+
+    /**
+     * Pluto channels use their Pluto ID; channels with a tvg-id (e.g. "BBCOne.uk") use "tvg:" plus it in
+     * lower case; anything else uses its URL. Both forms are matched against the guide.
+     */
+    static String channelIdFor(String url, String name, String tvgId) {
         Matcher m = PLUTO_ID.matcher(url);
         if (m.find()) return m.group(1).toLowerCase();
+        if (tvgId != null && !tvgId.isBlank()) return "tvg:" + tvgId.trim().toLowerCase();
         return "url:" + Integer.toHexString(url.hashCode()) + ":" + name;
+    }
+
+    /**
+     * Guide IDs a channel can be listed under, best first. Pluto: "pluto:ID.us", "pluto:ID.*", "xmltv:*:ID".
+     * tvg-id "Name.cc": "xmltv:cc:name", then the UK/GB twin.
+     */
+    static List<String> guideKeys(String channelId) {
+        if (!channelId.startsWith("tvg:")) return List.of();
+        String tvg = channelId.substring(4);
+        int dot = tvg.lastIndexOf('.');
+        String base = (dot > 0 ? tvg.substring(0, dot) : tvg).replaceAll("[^a-z0-9]", "");
+        String cc = dot > 0 ? tvg.substring(dot + 1) : "";
+        if (base.isEmpty()) return List.of();
+        List<String> keys = new ArrayList<>();
+        if (!cc.isEmpty()) keys.add("xmltv:" + cc + ":" + base);
+        if (cc.equals("uk")) keys.add("xmltv:gb:" + base);
+        if (cc.equals("gb")) keys.add("xmltv:uk:" + base);
+        return keys;
     }
 
     /**
@@ -199,6 +260,17 @@ public final class ChannelRepository {
         long now = System.currentTimeMillis();
         long from = now - Duration.ofHours(1).toMillis();
         long to = now + Duration.ofHours(26).toMillis();
+
+        // tvg channels: guide id -> (channel id, rank by position in guideKeys)
+        Map<String, String> tvgOwner = new HashMap<>();
+        Map<String, Integer> tvgRank = new HashMap<>();
+        for (String id : wanted) {
+            List<String> keys = guideKeys(id);
+            for (int k = 0; k < keys.size(); k++) {
+                tvgOwner.putIfAbsent(keys.get(k), id);
+                tvgRank.putIfAbsent(keys.get(k), 10 + k);
+            }
+        }
 
         Map<String, Map<Integer, List<Programme>>> found = new HashMap<>();
         XMLInputFactory factory = XMLInputFactory.newFactory();
@@ -220,9 +292,10 @@ public final class ChannelRepository {
                     if ("programme".equals(tag)) {
                         String guideId = xml.getAttributeValue(null, "channel");
                         String id = matchId(guideId);
-                        if (id != null && wanted.contains(id)) {
-                            channel = id;
-                            rank = rank(guideId);
+                        String tvg = guideId == null ? null : tvgOwner.get(guideId.toLowerCase());
+                        if ((id != null && wanted.contains(id)) || tvg != null) {
+                            channel = tvg != null ? tvg : id;
+                            rank = tvg != null ? tvgRank.get(guideId.toLowerCase()) : rank(guideId);
                             start = parseTime(xml.getAttributeValue(null, "start"));
                             stop = parseTime(xml.getAttributeValue(null, "stop"));
                             title = null;
