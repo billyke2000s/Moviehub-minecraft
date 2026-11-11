@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -61,6 +62,18 @@ public final class ChannelRepository {
     private static volatile long lastLoad;
     private static volatile boolean loading;
 
+    /** Per-country guides named in the playlists' headers (country -> URLs), loaded when first needed. */
+    private static volatile Map<String, List<String>> countryGuides = Map.of();
+    private static final Set<String> requestedCountries = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final java.util.concurrent.ExecutorService COUNTRY_LOADER =
+            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "MovieHubTV-Guide");
+                t.setDaemon(true);
+                return t;
+            });
+    private static final Duration COUNTRY_GUIDE_MAX_AGE = Duration.ofHours(12);
+    private static final Pattern COUNTRY_GUIDE = Pattern.compile("/epg_ripper_([A-Z]{2})\\d*\\.xml(\\.gz)?$");
+
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NORMAL)
             .connectTimeout(Duration.ofSeconds(15))
@@ -85,7 +98,10 @@ public final class ChannelRepository {
     public static Programme[] nowAndNext(String channelId, long nowMillis) {
         List<Programme> list = guide.get(channelId);
         Programme[] out = new Programme[2];
-        if (list == null) return out;
+        if (list == null) {
+            requestCountry(GuideMatch.countryOf(channelId));
+            return out;
+        }
         for (int i = 0; i < list.size(); i++) {
             Programme p = list.get(i);
             if (p.start() <= nowMillis && nowMillis < p.stop()) {
@@ -110,6 +126,7 @@ public final class ChannelRepository {
                     + ClientConfig.get(ClientConfig.EXTRA_PLAYLISTS, ClientConfig.DEFAULT_EXTRA_PLAYLISTS)).split(",");
             List<Channel> list = new ArrayList<>();
             Set<String> seen = new HashSet<>();
+            Map<String, List<String>> guideUrls = new HashMap<>();
             // Pluto first, straight from Pluto for this player's region. When that works, Pluto entries
             // in the playlists (other regions' line-ups, old-style links) are skipped.
             boolean plutoNative = false;
@@ -126,7 +143,9 @@ public final class ChannelRepository {
                 if (url.isEmpty()) continue;
                 try {
                     Path file = fetch(url, cache.resolve("playlist-" + i + ".m3u"), PLAYLIST_MAX_AGE);
-                    parseM3u(Files.readString(file, StandardCharsets.UTF_8), list, seen, plutoNative);
+                    String text = Files.readString(file, StandardCharsets.UTF_8);
+                    parseM3u(text, list, seen, plutoNative);
+                    collectCountryGuides(text, guideUrls);
                 } catch (Exception e) {
                     MovieHubTV.LOGGER.warn("Could not load playlist {}", url, e);
                 }
@@ -139,6 +158,8 @@ public final class ChannelRepository {
             for (Channel c : list) ids.put(c.id(), c);
             byId = ids;
             channels = List.copyOf(list);
+            countryGuides = guideUrls;
+            requestedCountries.clear();
             status = "";
             MovieHubTV.LOGGER.info("MovieHub TV loaded {} channels", list.size());
 
@@ -161,7 +182,7 @@ public final class ChannelRepository {
             if (!guideUrl.isEmpty()) {
                 try {
                     Path file = fetch(guideUrl, cache.resolve(guideUrl.endsWith(".gz") ? "guide.xml.gz" : "guide.xml"), GUIDE_MAX_AGE);
-                    Map<String, List<Programme>> merged = new HashMap<>(parseGuide(file, ids.keySet()));
+                    Map<String, List<Programme>> merged = new HashMap<>(parseGuide(file, ids.keySet(), list));
                     merged.putAll(plutoGuide); // Pluto's live listings beat the file's
                     guide = merged;
                     MovieHubTV.LOGGER.info("MovieHub TV guide has listings for {} of {} channels", guide.size(), ids.size());
@@ -169,6 +190,9 @@ public final class ChannelRepository {
                     MovieHubTV.LOGGER.warn("Could not load TV guide {}", guideUrl, e);
                 }
             }
+            // Country guides loaded while the main guide was still loading were replaced above; load again.
+            requestedCountries.clear();
+            requestCountry("uk"); // local channels first
         } catch (Exception e) {
             status = "Could not load channels";
             MovieHubTV.LOGGER.error("MovieHub TV failed to load", e);
@@ -234,7 +258,61 @@ public final class ChannelRepository {
         return o.has(key) && o.get(key).isJsonPrimitive() ? o.get(key).getAsString() : "";
     }
 
-    /** Downloads url to target unless a fresh enough copy exists; falls back to an old copy when offline. */
+    /**
+     * Reads the guide list in a playlist header (x-tvg-url / url-tvg) and keeps the per-country files,
+     * such as Free-TV's ".../epg_ripper_IT1.xml.gz" for Italy.
+     */
+    static void collectCountryGuides(String playlist, Map<String, List<String>> out) {
+        int end = playlist.indexOf('\n');
+        String header = end >= 0 ? playlist.substring(0, end) : playlist;
+        if (!header.startsWith("#EXTM3U")) return;
+        Map<String, String> attrs = attributes(header);
+        String all = attrs.getOrDefault("x-tvg-url", "") + "," + attrs.getOrDefault("url-tvg", "");
+        for (String url : all.split("[,\\s]+")) {
+            if (!url.startsWith("https://")) continue;
+            Matcher m = COUNTRY_GUIDE.matcher(url);
+            if (!m.find()) continue;
+            String cc = m.group(1).toLowerCase(java.util.Locale.ROOT);
+            if (cc.equals("gb")) cc = "uk";
+            List<String> urls = out.computeIfAbsent(cc, k -> new ArrayList<>());
+            if (!urls.contains(url)) urls.add(url);
+        }
+    }
+
+    /** Loads a country's own guide in the background the first time one of its channels has no listings. */
+    static void requestCountry(String cc) {
+        if (loading || cc == null || cc.isEmpty() || !countryGuides.containsKey(cc) || !requestedCountries.add(cc)) return;
+        COUNTRY_LOADER.execute(() -> loadCountry(cc));
+    }
+
+    private static void loadCountry(String cc) {
+        List<Channel> mine = new ArrayList<>();
+        for (Channel c : channels) if (cc.equals(GuideMatch.countryOf(c.id()))) mine.add(c);
+        if (mine.isEmpty()) return;
+        Set<String> wanted = new HashSet<>();
+        for (Channel c : mine) wanted.add(c.id());
+        Path cache = FMLPaths.GAMEDIR.get().resolve("moviehubtv-cache");
+        List<String> urls = countryGuides.getOrDefault(cc, List.of());
+        int before = 0;
+        for (Channel c : mine) if (guide.containsKey(c.id())) before++;
+        for (int n = 0; n < urls.size(); n++) {
+            try {
+                Path file = fetch(urls.get(n), cache.resolve("guide-" + cc + "-" + n + ".xml.gz"), COUNTRY_GUIDE_MAX_AGE);
+                Map<String, List<Programme>> found = parseGuide(file, wanted, mine);
+                synchronized (ChannelRepository.class) {
+                    Map<String, List<Programme>> merged = new HashMap<>(guide);
+                    for (Map.Entry<String, List<Programme>> e : found.entrySet()) merged.putIfAbsent(e.getKey(), e.getValue());
+                    guide = merged;
+                }
+            } catch (Exception e) {
+                MovieHubTV.LOGGER.warn("Could not load the {} TV guide {}", cc.toUpperCase(java.util.Locale.ROOT), urls.get(n), e);
+            }
+        }
+        int after = 0;
+        for (Channel c : mine) if (guide.containsKey(c.id())) after++;
+        MovieHubTV.LOGGER.info("{} guide: listings for {} of {} channels (was {})", cc.toUpperCase(java.util.Locale.ROOT), after, mine.size(), before);
+    }
+
     /** Adds Pluto's live channels; their url is "pluto:<id>" and is turned into a real link at play time. */
     static int addPluto(String json, List<Channel> out, Set<String> seen) {
         int added = 0;
@@ -261,6 +339,7 @@ public final class ChannelRepository {
         }
     }
 
+    /** Downloads url to target unless a fresh enough copy exists; falls back to an old copy when offline. */
     private static Path fetch(String url, Path target, Duration maxAge) throws IOException, InterruptedException {
         if (Files.exists(target)
                 && System.currentTimeMillis() - Files.getLastModifiedTime(target).toMillis() < maxAge.toMillis()) {
@@ -381,6 +460,16 @@ public final class ChannelRepository {
      * when several sources have the same channel, the earliest-ranked source wins.
      */
     static Map<String, List<Programme>> parseGuide(Path file, Set<String> wanted) throws Exception {
+        return parseGuide(file, wanted, List.of());
+    }
+
+    /**
+     * As above, and channels whose IDs don't match are matched by name ({@link GuideMatch}) using the
+     * guide's own channel list; an ID match always beats a name match.
+     */
+    static Map<String, List<Programme>> parseGuide(Path file, Set<String> wanted, Collection<Channel> channels) throws Exception {
+        GuideMatch.Index names = new GuideMatch.Index(channels);
+        Map<String, String> nameOwner = new HashMap<>();
         long now = System.currentTimeMillis();
         long from = now - Duration.ofHours(1).toMillis();
         long to = now + Duration.ofHours(26).toMillis();
@@ -394,6 +483,11 @@ public final class ChannelRepository {
                 tvgOwner.putIfAbsent(keys.get(k), id);
                 tvgRank.putIfAbsent(keys.get(k), 10 + k);
             }
+            // Guides that use the playlist's own tvg-ids (e.g. "Kanali7.al").
+            if (id.startsWith("tvg:")) {
+                tvgOwner.putIfAbsent(id.substring(4), id);
+                tvgRank.putIfAbsent(id.substring(4), 10);
+            }
         }
 
         Map<String, Map<Integer, List<Programme>>> found = new HashMap<>();
@@ -405,6 +499,7 @@ public final class ChannelRepository {
              InputStream in = file.getFileName().toString().endsWith(".gz") ? new GZIPInputStream(raw, 1 << 16) : raw) {
             XMLStreamReader xml = factory.createXMLStreamReader(in, "UTF-8");
             String channel = null;
+            String guideChannel = null;
             int rank = 0;
             long start = 0;
             long stop = 0;
@@ -413,13 +508,32 @@ public final class ChannelRepository {
                 int event = xml.next();
                 if (event == XMLStreamConstants.START_ELEMENT) {
                     String tag = xml.getLocalName();
-                    if ("programme".equals(tag)) {
+                    if ("channel".equals(tag)) {
+                        guideChannel = xml.getAttributeValue(null, "id");
+                        String g = guideChannel == null ? "" : guideChannel.toLowerCase();
+                        if (names.isEmpty() || g.isEmpty() || g.startsWith("pluto:") || tvgOwner.containsKey(g) || nameOwner.containsKey(g)) {
+                            guideChannel = null;
+                        } else if (g.startsWith("xmltv:")) {
+                            String[] parts = g.split(":", 3);
+                            String owner = parts.length == 3 ? names.find(parts[2], parts[1]) : null;
+                            if (owner != null) { nameOwner.put(g, owner); guideChannel = null; }
+                        }
+                    } else if ("display-name".equals(tag) && guideChannel != null) {
+                        String g = guideChannel.toLowerCase();
+                        String owner = names.find(xml.getElementText(), guideCountry(g));
+                        if (owner != null) {
+                            nameOwner.put(g, owner);
+                            guideChannel = null;
+                        }
+                    } else if ("programme".equals(tag)) {
                         String guideId = xml.getAttributeValue(null, "channel");
                         String id = matchId(guideId);
-                        String tvg = guideId == null ? null : tvgOwner.get(guideId.toLowerCase());
-                        if ((id != null && wanted.contains(id)) || tvg != null) {
-                            channel = tvg != null ? tvg : id;
-                            rank = tvg != null ? tvgRank.get(guideId.toLowerCase()) : rank(guideId);
+                        String lower = guideId == null ? null : guideId.toLowerCase();
+                        String tvg = lower == null ? null : tvgOwner.get(lower);
+                        String byName = tvg == null && lower != null ? nameOwner.get(lower) : null;
+                        if ((id != null && wanted.contains(id)) || tvg != null || byName != null) {
+                            channel = tvg != null ? tvg : byName != null ? byName : id;
+                            rank = tvg != null ? tvgRank.get(lower) : byName != null ? 50 : rank(guideId);
                             start = parseTime(xml.getAttributeValue(null, "start"));
                             stop = parseTime(xml.getAttributeValue(null, "stop"));
                             title = null;
@@ -429,6 +543,8 @@ public final class ChannelRepository {
                     } else if ("title".equals(tag) && channel != null && title == null) {
                         title = xml.getElementText().trim();
                     }
+                } else if (event == XMLStreamConstants.END_ELEMENT && "channel".equals(xml.getLocalName())) {
+                    guideChannel = null;
                 } else if (event == XMLStreamConstants.END_ELEMENT && "programme".equals(xml.getLocalName())) {
                     if (channel != null && title != null && stop > from && start < to && stop > start) {
                         found.computeIfAbsent(channel, k -> new HashMap<>())
@@ -449,6 +565,18 @@ public final class ChannelRepository {
             result.put(e.getKey(), List.copyOf(list));
         }
         return result;
+    }
+
+    /** Country of a guide channel: "xmltv:it:..." -> "it", "Name.it" -> "it", engine/other -> "". */
+    static String guideCountry(String guideId) {
+        if (guideId.startsWith("xmltv:")) {
+            String[] parts = guideId.split(":", 3);
+            return parts.length == 3 ? parts[1] : "";
+        }
+        if (guideId.startsWith("engine")) return "";
+        int dot = guideId.lastIndexOf('.');
+        String cc = dot > 0 ? guideId.substring(dot + 1) : "";
+        return cc.matches("[a-z]{2}") ? cc : "";
     }
 
     static String matchId(String guideId) {

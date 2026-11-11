@@ -2,16 +2,19 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "R",
-    "I",
-    "R"
+    " C ",
+    "IRI",
+    " C "
   ],
   "key": {
-    "R": {
-      "item": "minecraft:redstone"
+    "C": {
+      "item": "minecraft:copper_ingot"
     },
     "I": {
       "item": "minecraft:iron_ingot"
+    },
+    "R": {
+      "item": "minecraft:redstone"
     }
   },
   "result": {

@@ -22,7 +22,7 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 
 | Item | Recipe |
 | --- | --- |
-| Battery | Redstone, iron ingot, redstone in a vertical column |
+| Battery | Copper ingot top and bottom, iron ingots left and right, redstone in the middle |
 | TV | Iron ingots down both sides, battery top and bottom, glass in the middle |
 | Remote | Any button, battery, iron ingot in a vertical column |
 
