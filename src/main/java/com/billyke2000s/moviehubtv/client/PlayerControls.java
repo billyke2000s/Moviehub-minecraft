@@ -22,7 +22,8 @@ final class PlayerControls {
         c.text(c.fit(channel.name(), w - 16, 0.8f), 8, y + 4, 1.5f, 0.8f, 0xFFFFFFFF);
         long duration = session != null && session.player != null ? session.player.getDuration() : 0;
         long time = session != null && session.player != null ? session.player.getTime() : tv.mediaPosition();
-        String progress = time(time) + (duration > 0 ? " / " + time(duration) : "") + (tv.mediaPaused() ? "  Paused" : "  Pluto TV");
+        String provider = tv.channelId().startsWith("vod:moviehub:") ? "  MovieHub" : "  Pluto TV";
+        String progress = time(time) + (duration > 0 ? " / " + time(duration) : "") + (tv.mediaPaused() ? "  Paused" : provider);
         c.text(c.fit(progress, w - 16, 0.65f), 8, y + 16, 1.5f, 0.65f, 0xFFA9BCDD);
         String[] labels = {"-10s", tv.mediaPaused() ? "Play" : "Pause", "+10s", "Guide"};
         float bw = (w - 10) / 4;

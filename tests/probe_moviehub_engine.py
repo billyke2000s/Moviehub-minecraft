@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location('worker', root / 'src/engine/movie
 worker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(worker)
 sites = [p for p in json.loads(engine.search_providers()) if p['id'] in ('native:rive', 'native:movy', 'free99:levidia_ch')]
-engine.search_providers = lambda: json.dumps(sites)
+engine.search_providers = lambda include_retired=False: json.dumps(sites)
 found = []
 def safe_log(event):
     if event['event'] == 'source':

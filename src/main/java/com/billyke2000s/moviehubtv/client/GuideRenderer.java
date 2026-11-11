@@ -73,7 +73,7 @@ final class GuideRenderer {
     static void chooseTab(BlockPos pos, int tab) {
         State s = state(pos);
         if (tab < 0 || tab > 3) return;
-        s.browser.cancelSearch();
+        if (tab == 0) s.browser.cancelSearch();
         s.tab = tab;
         if (tab != 0) s.browser.root(tab);
     }
@@ -170,7 +170,7 @@ final class GuideRenderer {
             if (u >= 3 && u < 3 + GuideLayout.BUTTON_W) return new Hit(Target.UP, -1);
             if (u >= 23 && u < 23 + GuideLayout.BUTTON_W) return new Hit(Target.DOWN, -1);
             if (u >= l.categoriesX() && u < l.categoriesX() + GuideLayout.CATEGORIES_W) return new Hit(Target.CATEGORIES, -1);
-            if (u >= l.backX() && u < l.backX() + GuideLayout.BACK_W && (!tv.channelId().isEmpty() || s.browser.canBack())) return new Hit(Target.BACK, -1);
+            if (u >= l.backX() && u < l.backX() + GuideLayout.BACK_W && (!tv.channelId().isEmpty() || (s.tab != 0 && s.browser.canBack()))) return new Hit(Target.BACK, -1);
             return Hit.NONE;
         }
         if (v < ROW_Y0 || u < GuideLayout.CH_X || u >= l.rowRight()) return Hit.NONE;
@@ -346,8 +346,8 @@ final class GuideRenderer {
         }
         button(c, l.categoriesX(), GuideLayout.CATEGORIES_W, s.tab != 0 ? "Search" : s.picking ? "Channels" : "Categories",
                 hover.target() == Target.CATEGORIES, 0.6f);
-        if (!tv.channelId().isEmpty() || s.browser.canBack()) {
-            button(c, l.backX(), GuideLayout.BACK_W, s.browser.canBack() ? "Back" : "Back to TV", hover.target() == Target.BACK, 0.6f);
+        if (!tv.channelId().isEmpty() || (s.tab != 0 && s.browser.canBack())) {
+            button(c, l.backX(), GuideLayout.BACK_W, s.tab != 0 && s.browser.canBack() ? "Back" : "Back to TV", hover.target() == Target.BACK, 0.6f);
         }
     }
 

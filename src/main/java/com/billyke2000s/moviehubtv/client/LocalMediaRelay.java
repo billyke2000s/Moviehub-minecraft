@@ -22,6 +22,7 @@ final class LocalMediaRelay implements AutoCloseable {
     private final URI original;
     private final Map<String, String> headers = new HashMap<>();
     private final Map<String, URI> assets = new ConcurrentHashMap<>();
+    private final Map<String, URI> bases = new ConcurrentHashMap<>();
     private final boolean containers;
     private final String root;
 
@@ -54,14 +55,29 @@ final class LocalMediaRelay implements AutoCloseable {
         if (!extension.matches("\\.[a-zA-Z0-9]{1,8}")) extension = ".bin";
         return "http://127.0.0.1:" + server.getAddress().getPort() + "/" + token + "/" + id + extension;
     }
+    private String assetBase(URI uri) {
+        if (bases.size() > 2000) throw new IllegalStateException("DASH base limit");
+        String id = UUID.randomUUID().toString();
+        bases.put(id, uri);
+        return "http://127.0.0.1:" + server.getAddress().getPort() + "/" + token + "/" + id + "/";
+    }
     private void serve(HttpExchange exchange) throws IOException {
         try {
             if (!exchange.getRequestMethod().equals("GET") && !exchange.getRequestMethod().equals("HEAD")) {
                 exchange.sendResponseHeaders(405, -1); return;
             }
             String key = exchange.getRequestURI().getPath().substring(token.length() + 2);
-            int dot = key.indexOf('.'); if (dot >= 0) key = key.substring(0, dot);
-            URI uri = assets.get(key);
+            URI uri;
+            int slash = key.indexOf('/');
+            if (slash >= 0) {
+                URI base = bases.get(key.substring(0, slash));
+                String tail = exchange.getRequestURI().getRawPath().substring(token.length() + 2 + slash + 1);
+                if (exchange.getRequestURI().getRawQuery() != null) tail += "?" + exchange.getRequestURI().getRawQuery();
+                uri = base == null || tail.startsWith("/") || tail.contains("://") ? null : base.resolve(tail);
+            } else {
+                int dot = key.indexOf('.'); if (dot >= 0) key = key.substring(0, dot);
+                uri = assets.get(key);
+            }
             if (uri == null) { exchange.sendResponseHeaders(404, -1); return; }
             String range = exchange.getRequestHeaders().getFirst("Range");
             if (range != null && !range.matches("bytes=[0-9]*-[0-9]*")) { exchange.sendResponseHeaders(416, -1); return; }
@@ -71,6 +87,12 @@ final class LocalMediaRelay implements AutoCloseable {
                     exchange.sendResponseHeaders(response.statusCode(), -1); return;
                 }
                 String type = response.headers().firstValue("Content-Type").orElse("application/octet-stream");
+                if (exchange.getRequestMethod().equals("HEAD")) {
+                    exchange.getResponseHeaders().set("Content-Type", type);
+                    response.headers().firstValue("Content-Length").ifPresent(v -> exchange.getResponseHeaders().set("Content-Length", v));
+                    exchange.sendResponseHeaders(response.statusCode(), -1);
+                    return;
+                }
                 in.mark(16); byte[] prefix = in.readNBytes(8); in.reset();
                 boolean hls = new String(prefix, StandardCharsets.US_ASCII).startsWith("#EXTM3U")
                         || type.toLowerCase(Locale.ROOT).contains("mpegurl");
@@ -79,6 +101,13 @@ final class LocalMediaRelay implements AutoCloseable {
                     if (bytes.length > 2000000) throw new IOException("Playlist limit");
                     byte[] body = rewrite(new String(bytes, StandardCharsets.UTF_8), response.uri()).getBytes(StandardCharsets.UTF_8);
                     exchange.getResponseHeaders().set("Content-Type", "application/vnd.apple.mpegurl");
+                    exchange.sendResponseHeaders(200, exchange.getRequestMethod().equals("HEAD") ? -1 : body.length);
+                    if (!exchange.getRequestMethod().equals("HEAD")) exchange.getResponseBody().write(body);
+                } else if (type.toLowerCase(Locale.ROOT).contains("dash+xml") || response.uri().getPath().endsWith(".mpd")) {
+                    byte[] bytes = in.readNBytes(2000001);
+                    if (bytes.length > 2000000) throw new IOException("DASH manifest limit");
+                    byte[] body = rewriteDash(bytes, response.uri());
+                    exchange.getResponseHeaders().set("Content-Type", "application/dash+xml");
                     exchange.sendResponseHeaders(200, exchange.getRequestMethod().equals("HEAD") ? -1 : body.length);
                     if (!exchange.getRequestMethod().equals("HEAD")) exchange.getResponseBody().write(body);
                 } else if (containers && ProviderPngSegments.matches(prefix, prefix.length)) {
@@ -106,7 +135,8 @@ final class LocalMediaRelay implements AutoCloseable {
                 throw new IOException("Invalid source address");
             for (InetAddress address : InetAddress.getAllByName(uri.getHost())) {
                 if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
-                        || address.isSiteLocalAddress() || address.isMulticastAddress()) throw new IOException("Nonpublic source address");
+                        || address.isSiteLocalAddress() || address.isMulticastAddress()
+                        || (address.getAddress().length == 16 && (address.getAddress()[0] & 0xfe) == 0xfc)) throw new IOException("Nonpublic source address");
             }
             var request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(45));
             for (var e : headers.entrySet()) {
@@ -122,7 +152,7 @@ final class LocalMediaRelay implements AutoCloseable {
         }
         throw new IOException("Source redirect limit");
     }
-    private String rewrite(String text, URI base) {
+    String rewrite(String text, URI base) {
         StringBuilder out = new StringBuilder();
         for (String line : text.split("\\R")) {
             if (!line.isBlank() && !line.startsWith("#")) line = asset(base.resolve(line.trim()));
@@ -135,5 +165,54 @@ final class LocalMediaRelay implements AutoCloseable {
         }
         return out.toString();
     }
-    public void close() { server.stop(0); workers.shutdownNow(); assets.clear(); }
+    byte[] rewriteDash(byte[] bytes, URI base) throws Exception {
+        var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        var doc = factory.newDocumentBuilder().parse(new ByteArrayInputStream(bytes));
+        rewriteDashElement(doc.getDocumentElement(), base);
+        var tf = javax.xml.transform.TransformerFactory.newInstance();
+        tf.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        tf.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        tf.newTransformer().transform(new javax.xml.transform.dom.DOMSource(doc), new javax.xml.transform.stream.StreamResult(out));
+        return out.toByteArray();
+    }
+    private void rewriteDashElement(org.w3c.dom.Element element, URI inherited) {
+        URI base = inherited;
+        var nodes = element.getChildNodes();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            if (nodes.item(i) instanceof org.w3c.dom.Element child && name(child).equals("BaseURL")) {
+                URI resolved = inherited.resolve(child.getTextContent().trim());
+                base = resolved;
+                child.setTextContent(resolved.getPath().endsWith("/") ? assetBase(resolved) : asset(resolved));
+            }
+        }
+        String tag = name(element);
+        for (String attribute : List.of("media", "initialization", "sourceURL")) {
+            if (!element.hasAttribute(attribute)) continue;
+            String value = element.getAttribute(attribute);
+            URI resolved = base.resolve(value.replace("%", "%25"));
+            if (value.contains("$")) {
+                String path = resolved.getRawPath();
+                int last = path.lastIndexOf('/');
+                URI directory = resolved.resolve(".");
+                String suffix = path.substring(last + 1).replace("%25", "%");
+                if (resolved.getRawQuery() != null) suffix += "?" + resolved.getRawQuery().replace("%25", "%");
+                element.setAttribute(attribute, assetBase(directory) + suffix);
+            } else element.setAttribute(attribute, asset(resolved));
+        }
+        if (tag.equals("MPD") && element.getElementsByTagNameNS("*", "BaseURL").getLength() == 0) {
+            var child = element.getOwnerDocument().createElementNS(element.getNamespaceURI(), "BaseURL");
+            child.setTextContent(assetBase(inherited.resolve(".")));
+            element.insertBefore(child, element.getFirstChild());
+        }
+        for (int i = 0; i < nodes.getLength(); i++) {
+            if (nodes.item(i) instanceof org.w3c.dom.Element child && !name(child).equals("BaseURL")) rewriteDashElement(child, base);
+        }
+    }
+    private static String name(org.w3c.dom.Element e) { return e.getLocalName() == null ? e.getTagName() : e.getLocalName(); }
+    public void close() { server.stop(0); workers.shutdownNow(); assets.clear(); bases.clear(); }
 }
