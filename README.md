@@ -27,6 +27,15 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 | Remote | Any button, battery, iron ingot in a vertical column |
 | Speaker | Planks down both sides, any wool top middle, note block in the centre, redstone bottom middle |
 
+**Volume:** aim the remote at a TV and scroll the mouse wheel while watching a channel (or hold
+sneak and scroll while the guide is open). Each step is 5, from 0 to 100; everyone hears that TV
+at its volume. Your own `masterVolume` setting scales all TVs for you only.
+
+**Speakers:** place a speaker anywhere within 32 blocks of a TV and it links to the nearest TV
+(a message says which). You hear the TV from each linked speaker as if standing at the TV, so
+speakers carry the sound around a room or building. Right-click a speaker with an empty hand
+to relink it to whichever TV is nearest now. Up to 8 speakers per TV block.
+
 
 **TV sizes:** place normal TVs with the screen facing you. Matching TVs that touch in the
 same plane join into one TV, including one outer frame when switched off:
@@ -44,7 +53,7 @@ Incomplete shapes and other rectangles stay separate until a supported rectangle
 The bottom-left TV controls the joined screen. Old crafted big TVs convert to the equivalent
 normal-TV group when loaded, preserving facing, channel and power.
 
-Use the same 0.5.8 jar on the server and all clients, replacing older MovieHub jars and fully
+Use the same jar version on the server and all clients, replacing older MovieHub jars and fully
 restarting both. Older builds are rejected by the compatibility handshake. The guide and remote use the actual casing’s facing and a validated footprint; inconsistent layouts
 request automatic server repair instead of projecting into empty space. Existing normal
 TV walls regroup when their chunks load; there is no new rotation tool or wall-face placement mode.
@@ -76,7 +85,7 @@ TV walls regroup when their chunks load; there is no new rotation tool or wall-f
   It is about 50 MB, so it downloads in the background (at most every 6 hours) and is
   cached in `.minecraft/moviehubtv-cache`. Only listings for the playlist's channels are kept.
 - The URLs can be changed in `config/moviehubtv-client.toml`: `playlists` and `extraPlaylists`
-  (comma-separated; clear `extraPlaylists` to hide Free-TV), `guide`, volume and hearing range.
+  (comma-separated; clear `extraPlaylists` to hide Free-TV), `guide`, `masterVolume` and `hearingRange`.
 
 ## Build from source
 

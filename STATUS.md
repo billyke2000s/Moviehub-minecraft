@@ -1,18 +1,24 @@
 # Status
 
-## 0.6.0 — speakers
+## 0.7.0 — TV volume and linked speakers (replaces 0.6.0's speaker behaviour)
 
-- New craftable Speaker block (planks / wool / note block / redstone; see README). Up to 4 speakers
-  within 8 blocks of a TV count. Each adds 5 to the TV's loudest volume (never above 100) and 50% to its
-  hearing range (16 → 48 blocks with 4 speakers), and the TV is heard from each speaker as if standing at
-  the TV. Clients rescan for speakers once a second. All volume logic stays client-side; the speaker is
-  a plain block with no block entity.
-- Network version is now `tv-0.6.0`: server and every player must run 0.6.0 (the new block also changes
-  the registry, so older clients cannot join anyway).
-- Verified: `python3 tests/run_tv_regressions.py` runs the real `SpeakerMix` maths (volume, range, caps,
-  hearing from a speaker) and checks the speaker resources, recipe, loot table and axe tag. Full build:
-  GitHub Actions. Not tested in-game: how loud it actually sounds through WATERMeDIA/VLC, the block
-  model/texture, and the recipe in the crafting table.
+- Each TV has its own saved volume (0-100, default 80, steps of 5), changed with the remote's scroll
+  wheel while watching, or sneak + scroll while the guide is open. It is server state, so everyone hears
+  the same TV volume. The client setting `volume` is replaced by `masterVolume` (percent, default 100).
+- Speakers (same recipe as 0.6.0) link on the server to the nearest TV block within 32 blocks of loaded
+  chunks when placed; empty-hand right-click relinks; breaking unlinks. A TV block holds up to 8 speakers
+  (oldest dropped). The client hears a screen from the TV or any loaded speaker linked to any of its wall
+  members, at the TV's volume, fading over `hearingRange`. 0.6.0's radius/boost rules are gone.
+- Network version `tv-0.7.0`; server and every player must run 0.7.0.
+- Verified: regression script runs the real `SpeakerMix` maths and checks resources and wiring. Full
+  build: GitHub Actions. Not tested in-game: linking messages, volume control feel, how it sounds through
+  WATERMeDIA/VLC, speaker links after a TV wall regroups or a linked TV is broken (the speaker then needs
+  an empty-hand right-click to relink).
+
+## 0.6.0 — first speakers (superseded)
+
+- Released 11 Nov 2026 but never installed on the server: speakers within 8 blocks boosted volume
+  (+5 each) and range (+50% each, max 4). Replaced by 0.7.0.
 
 ## 0.5.8 — casing-aligned screen validation and automatic repair
 

@@ -13,7 +13,6 @@ import org.watermedia.api.player.videolan.VideoPlayer;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -30,8 +29,6 @@ final class TvVideoManager {
         String channelId = "";
         long tunedAt;
         boolean registered;
-        List<BlockPos> speakers = List.of();
-        long speakersScannedAt = Long.MIN_VALUE;
 
         Session(BlockPos pos) {
             this.pos = pos;
@@ -115,51 +112,47 @@ final class TvVideoManager {
             releaseAll();
             return;
         }
-        int maxVolume = ClientConfig.get(ClientConfig.VOLUME, 80);
+        int master = ClientConfig.get(ClientConfig.MASTER_VOLUME, 100);
         int range = ClientConfig.get(ClientConfig.HEARING_RANGE, 16);
         Vec3 ear = mc.player.getEyePosition();
         Iterator<Session> it = SESSIONS.values().iterator();
         while (it.hasNext()) {
             Session s = it.next();
             double dist = Math.sqrt(ear.distanceToSqr(Vec3.atCenterOf(s.pos)));
-            boolean keep = dist < 64
-                    && mc.level.isLoaded(s.pos)
-                    && mc.level.getBlockEntity(s.pos) instanceof TvBlockEntity tv
-                    && tv.isOn() && tv.channelId().equals(s.channelId)
-                    && tv.isWallController()
-                    && TvScreenLayout.resolve(mc.level, s.pos) != null;
+            TvBlockEntity tv = mc.level.isLoaded(s.pos) && mc.level.getBlockEntity(s.pos) instanceof TvBlockEntity t ? t : null;
+            TvScreenLayout.Layout layout = tv == null ? null : TvScreenLayout.resolve(mc.level, s.pos);
+            boolean keep = dist < 64 && tv != null && tv.isOn() && tv.channelId().equals(s.channelId)
+                    && tv.isWallController() && layout != null;
             if (!keep) {
                 s.release();
                 it.remove();
                 continue;
             }
             if (s.player != null) {
-                long now = mc.level.getGameTime();
-                if (now - s.speakersScannedAt >= 20 || now < s.speakersScannedAt) {
-                    s.speakers = findSpeakers(mc, s.pos);
-                    s.speakersScannedAt = now;
-                }
-                double[] toSpeakers = new double[s.speakers.size()];
+                List<BlockPos> speakers = speakers(mc, layout);
+                double[] toSpeakers = new double[speakers.size()];
                 for (int i = 0; i < toSpeakers.length; i++) {
-                    toSpeakers[i] = Math.sqrt(ear.distanceToSqr(Vec3.atCenterOf(s.speakers.get(i))));
+                    toSpeakers[i] = Math.sqrt(ear.distanceToSqr(Vec3.atCenterOf(speakers.get(i))));
                 }
-                int volume = SpeakerMix.volume(maxVolume, range, dist, toSpeakers);
+                int volume = SpeakerMix.volume(tv.volume(), master, range, dist, toSpeakers);
                 if (s.player.getVolume() != volume) s.player.setVolume(volume);
             }
         }
     }
 
-    /** The nearest SpeakerMix.MAX_SPEAKERS speaker blocks within SpeakerMix.RADIUS of the TV. */
-    private static List<BlockPos> findSpeakers(Minecraft mc, BlockPos tv) {
-        int r = SpeakerMix.RADIUS;
+    /** Loaded speakers linked to any TV block of this screen. */
+    private static List<BlockPos> speakers(Minecraft mc, TvScreenLayout.Layout layout) {
         List<BlockPos> found = new ArrayList<>();
-        for (BlockPos p : BlockPos.betweenClosed(tv.offset(-r, -r, -r), tv.offset(r, r, r))) {
-            if (p.distSqr(tv) <= (double) r * r && mc.level.getBlockState(p).is(ModRegistry.SPEAKER.get())) {
-                found.add(p.immutable());
+        for (int x = 0; x < layout.width(); x++) {
+            for (int y = 0; y < layout.height(); y++) {
+                BlockPos member = com.billyke2000s.moviehubtv.block.TvWall.memberPos(layout.controller(), layout.facing(), x, y);
+                if (!(mc.level.getBlockEntity(member) instanceof TvBlockEntity tv)) continue;
+                for (BlockPos p : tv.speakers()) {
+                    if (mc.level.isLoaded(p) && mc.level.getBlockState(p).is(ModRegistry.SPEAKER.get())) found.add(p);
+                }
             }
         }
-        found.sort(Comparator.comparingDouble(p -> p.distSqr(tv)));
-        return found.size() > SpeakerMix.MAX_SPEAKERS ? List.copyOf(found.subList(0, SpeakerMix.MAX_SPEAKERS)) : found;
+        return found;
     }
 
     static void releaseAll() {

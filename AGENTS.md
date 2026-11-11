@@ -5,7 +5,8 @@
   (compile-only dependency; players install it themselves; it may not be redistributed).
 - Common code (`block`, `item`, `network`, `ModRegistry`) must not reference anything in `client`.
   All WATERMeDIA use stays in `client`.
-- Server-side TV state is in `TvBlockEntity` and only changes through `TvBlockEntity.apply`.
+- Server-side TV state is in `TvBlockEntity`. Power, channel, guide and volume change only through
+  `TvBlockEntity.apply`; speaker links change only through `SpeakerLink`.
   The guide layout and channel list exist only on the client.
 - Screen maths lives in `ScreenGeometry`; rendering and the remote's hit test must both use it.
 - Channel sources are the owner's own repos (Moviehub-freelinks, Moviehub-epg). Do not add

@@ -21,7 +21,7 @@ public final class ClientConfig {
     public static final ModConfigSpec.ConfigValue<String> EXTRA_PLAYLISTS;
     public static final ModConfigSpec.BooleanValue PLUTO_NATIVE;
     public static final ModConfigSpec.ConfigValue<String> GUIDE_URL;
-    public static final ModConfigSpec.IntValue VOLUME;
+    public static final ModConfigSpec.IntValue MASTER_VOLUME;
     public static final ModConfigSpec.IntValue HEARING_RANGE;
 
     static {
@@ -35,9 +35,9 @@ public final class ClientConfig {
                 .define("extraPlaylists", DEFAULT_EXTRA_PLAYLISTS);
         GUIDE_URL = b.comment("XMLTV guide (.xml or .xml.gz) used for now/next listings.")
                 .define("guide", DEFAULT_GUIDE);
-        VOLUME = b.comment("TV volume when standing next to it, 0-100.")
-                .defineInRange("volume", 80, 0, 100);
-        HEARING_RANGE = b.comment("Blocks away at which a TV becomes silent.")
+        MASTER_VOLUME = b.comment("Your own volume for all TVs, in percent. Each TV's volume is set with the remote.")
+                .defineInRange("masterVolume", 100, 0, 100);
+        HEARING_RANGE = b.comment("Blocks away from a TV or one of its speakers at which it becomes silent.")
                 .defineInRange("hearingRange", 16, 4, 64);
         SPEC = b.build();
     }

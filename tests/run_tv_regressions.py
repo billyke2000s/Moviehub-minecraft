@@ -102,20 +102,18 @@ public class SpeakerTest {
  static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
  public static void main(String[] a){
   double[] none={};
-  check(SpeakerMix.volume(80,16,0,none)==80,"no speakers: unchanged at the TV");
-  check(SpeakerMix.volume(80,16,8,none)==40,"no speakers: unchanged at half range");
-  check(SpeakerMix.volume(80,16,16,none)==0,"no speakers: silent at the old range");
-  check(SpeakerMix.volume(80,16,0,new double[]{6})==85,"one speaker: louder at the TV");
-  check(SpeakerMix.volume(80,16,16,new double[]{30})>0,"one speaker: still heard at the old range");
-  check(SpeakerMix.volume(80,16,30,new double[]{0})==85,"next to a speaker: as loud as next to the TV");
-  check(SpeakerMix.volume(80,16,0,new double[]{9,9,9,9})==100,"four speakers: full volume");
-  check(SpeakerMix.volume(80,16,0,new double[]{9,9,9,9,9,9})==100,"more than four: capped, never over 100");
-  check(SpeakerMix.range(16,4)==48,"four speakers triple the range");
-  check(SpeakerMix.range(16,9)==48,"range capped at four speakers");
-  check(SpeakerMix.volume(100,16,0,new double[]{1,1})==100,"volume never above 100");
-  check(SpeakerMix.volume(0,16,0,new double[]{1})==5,"a muted setting gets only the speaker boost");
-  check(SpeakerMix.volume(80,16,47,new double[]{47,47,47,47})>0&&SpeakerMix.volume(80,16,48,new double[]{48,48,48,48})==0,"silent at the extended range");
-  System.out.println("PASS: speaker volume and range maths");
+  check(SpeakerMix.volume(80,100,16,0,none)==80,"default TV volume next to the TV");
+  check(SpeakerMix.volume(80,100,16,8,none)==40,"fades with distance");
+  check(SpeakerMix.volume(80,100,16,16,none)==0,"silent at hearing range");
+  check(SpeakerMix.volume(100,100,16,0,none)==100,"TV volume up to 100");
+  check(SpeakerMix.volume(0,100,16,0,new double[]{0})==0,"muted TV is silent even at a speaker");
+  check(SpeakerMix.volume(80,50,16,0,none)==40,"master volume scales every TV");
+  check(SpeakerMix.volume(80,100,16,40,new double[]{0})==80,"next to a speaker: as loud as next to the TV");
+  check(SpeakerMix.volume(80,100,16,40,new double[]{30,8})==40,"nearest speaker counts");
+  check(SpeakerMix.volume(80,100,16,40,new double[]{20,30})==0,"too far from TV and speakers: silent");
+  check(SpeakerMix.volume(150,120,16,0,none)==100,"volumes clamped to 100");
+  check(SpeakerMix.volume(-5,100,16,0,none)==0,"negative volume clamped to 0");
+  System.out.println("PASS: TV volume, master volume and speaker hearing maths");
  }
 }'''
 
@@ -137,7 +135,13 @@ def run_speaker_tests(repo):
         assert (resources/key).exists(), key
     assert 'moviehubtv:speaker' in json.loads((resources/'data/minecraft/tags/block/mineable/axe.json').read_text())['values']
     assert 'block.moviehubtv.speaker' in json.loads((resources/'assets/moviehubtv/lang/en_us.json').read_text())
-    print('PASS: speaker block resources, recipe, loot and tool tag')
+    assert 'block.moviehubtv.speaker.linked' in json.loads((resources/'assets/moviehubtv/lang/en_us.json').read_text())
+    code=(repo/'src/main/java/com/billyke2000s/moviehubtv')
+    tv=(code/'block/TvBlockEntity.java').read_text()
+    assert 'ACTION_VOLUME_UP' in tv and 'putInt("Volume"' in tv and 'putLongArray("Speakers"' in tv
+    assert 'SpeakerLink.link' in (code/'block/SpeakerBlock.java').read_text()
+    assert 'ACTION_VOLUME_UP' in (code/'client/RemoteControl.java').read_text()
+    print('PASS: speaker block resources, recipe, loot, tool tag; volume and speaker links wired in')
 
 def main():
     repo=Path(__file__).resolve().parents[1]

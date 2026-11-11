@@ -12,17 +12,32 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
-/** Saved TV state: power, tuned channel and whether the guide is showing. Changed only on the server. */
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Saved TV state: power, tuned channel, whether the guide is showing, volume and linked speakers.
+ * Changed only on the server: remote/hand actions through {@link #apply}, speaker links through {@link SpeakerLink}.
+ */
 public class TvBlockEntity extends BlockEntity {
     public static final int ACTION_POWER = 0;
     public static final int ACTION_OPEN_GUIDE = 1;
     public static final int ACTION_CLOSE_GUIDE = 2;
     public static final int ACTION_TUNE = 3;
     public static final int ACTION_REPAIR_LAYOUT = 4;
+    public static final int ACTION_VOLUME_UP = 5;
+    public static final int ACTION_VOLUME_DOWN = 6;
+
+    public static final int DEFAULT_VOLUME = 80;
+    public static final int VOLUME_STEP = 5;
+    /** Speakers each TV block can hold; a joined screen counts every member's speakers. */
+    public static final int MAX_SPEAKERS = 8;
 
     private boolean on;
     private String channelId = "";
     private boolean guideOpen = true;
+    private int volume = DEFAULT_VOLUME;
+    private final List<BlockPos> speakers = new ArrayList<>();
     /** Place in a TV wall: column/row from the viewer's bottom-left, and the wall's size (1x1 = alone). */
     private int wallX, wallY, wallW = 1, wallH = 1;
 
@@ -31,6 +46,10 @@ public class TvBlockEntity extends BlockEntity {
     }
 
     public boolean isOn() { return on; }
+    /** 0-100. For a joined screen, the controller's volume is used. */
+    public int volume() { return volume; }
+    /** Speakers linked to this TV block (not the rest of its wall). */
+    public List<BlockPos> speakers() { return List.copyOf(speakers); }
     public String channelId() { return channelId; }
     /** The guide shows when it was opened, or when nothing has been tuned yet. */
     public boolean isGuideShowing() { return on && (guideOpen || channelId.isEmpty()); }
@@ -103,6 +122,8 @@ public class TvBlockEntity extends BlockEntity {
             }
             case ACTION_OPEN_GUIDE -> { if (on) guideOpen = true; }
             case ACTION_CLOSE_GUIDE -> { if (on && !channelId.isEmpty()) guideOpen = false; }
+            case ACTION_VOLUME_UP -> volume = Math.min(100, volume + VOLUME_STEP);
+            case ACTION_VOLUME_DOWN -> volume = Math.max(0, volume - VOLUME_STEP);
             case ACTION_TUNE -> {
                 if (channel == null || channel.isBlank()) return;
                 on = true;
@@ -112,6 +133,25 @@ public class TvBlockEntity extends BlockEntity {
             default -> { return; }
         }
         sync();
+    }
+
+    /** Called by {@link SpeakerLink}. Drops the oldest speaker when full. Server side only. */
+    void addSpeaker(BlockPos speaker) {
+        BlockPos p = speaker.immutable();
+        if (speakers.contains(p)) return;
+        if (speakers.size() >= MAX_SPEAKERS) speakers.remove(0);
+        speakers.add(p);
+        sendState();
+    }
+
+    /** Called by {@link SpeakerLink}. Server side only. */
+    void removeSpeaker(BlockPos speaker) {
+        if (speakers.remove(speaker)) sendState();
+    }
+
+    private void sendState() {
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
     }
 
     private void sync() {
@@ -150,6 +190,8 @@ public class TvBlockEntity extends BlockEntity {
         tag.putString("Channel", channelId);
         tag.putBoolean("Guide", guideOpen);
         tag.putIntArray("Wall", new int[]{wallX, wallY, wallW, wallH});
+        tag.putInt("Volume", volume);
+        tag.putLongArray("Speakers", speakers.stream().mapToLong(BlockPos::asLong).toArray());
     }
 
     @Override
@@ -158,6 +200,11 @@ public class TvBlockEntity extends BlockEntity {
         on = tag.getBoolean("On");
         channelId = tag.getString("Channel");
         guideOpen = !tag.contains("Guide") || tag.getBoolean("Guide");
+        volume = tag.contains("Volume") ? Math.max(0, Math.min(100, tag.getInt("Volume"))) : DEFAULT_VOLUME;
+        speakers.clear();
+        for (long packed : tag.getLongArray("Speakers")) {
+            if (speakers.size() < MAX_SPEAKERS) speakers.add(BlockPos.of(packed));
+        }
         int[] wall = tag.getIntArray("Wall");
         if (wall.length == 4 && wall[2] >= 1 && wall[3] >= 1 && wall[2] <= TvWall.MAX_WIDTH && wall[3] <= TvWall.MAX_HEIGHT
                 && wall[0] >= 0 && wall[0] < wall[2] && wall[1] >= 0 && wall[1] < wall[3]) {

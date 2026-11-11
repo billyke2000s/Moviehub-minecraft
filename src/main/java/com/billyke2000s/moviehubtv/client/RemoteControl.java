@@ -22,8 +22,9 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * Wii-style pointing: while the remote is held and aimed at a TV screen, a hand cursor follows
- * where you look. Right-click presses what is under the cursor, left-click is the power button,
- * and the mouse wheel scrolls the guide.
+ * where you look. Right-click presses what is under the cursor, left-click is the power button.
+ * The mouse wheel scrolls the guide while it is showing, and otherwise (or while sneaking) changes
+ * the TV's volume.
  */
 public final class RemoteControl {
     private RemoteControl() {}
@@ -112,10 +113,22 @@ public final class RemoteControl {
 
     static void onScroll(InputEvent.MouseScrollingEvent event) {
         Pointer p = pointer;
-        if (p == null || !(tvAt(p.pos()) instanceof TvBlockEntity tv) || !tv.isGuideShowing()) return;
+        if (p == null || !(tvAt(p.pos()) instanceof TvBlockEntity tv) || !tv.isOn()) return;
         event.setCanceled(true);
         double delta = event.getScrollDeltaY();
-        if (delta != 0) GuideRenderer.scrollBy(p.pos(), tv, delta > 0 ? -1 : 1);
+        if (delta == 0) return;
+        Minecraft mc = Minecraft.getInstance();
+        boolean sneaking = mc.player != null && mc.player.isShiftKeyDown();
+        if (tv.isGuideShowing() && !sneaking) {
+            GuideRenderer.scrollBy(p.pos(), tv, delta > 0 ? -1 : 1);
+            return;
+        }
+        boolean up = delta > 0;
+        send(p.pos(), up ? TvBlockEntity.ACTION_VOLUME_UP : TvBlockEntity.ACTION_VOLUME_DOWN, "");
+        int shown = Math.max(0, Math.min(100, tv.volume() + (up ? 1 : -1) * TvBlockEntity.VOLUME_STEP));
+        if (mc.player != null) {
+            mc.player.displayClientMessage(net.minecraft.network.chat.Component.translatable("item.moviehubtv.remote.volume", shown), true);
+        }
     }
 
     static void onGuiLayer(RenderGuiLayerEvent.Pre event) {

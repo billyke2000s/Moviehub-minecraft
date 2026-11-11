@@ -5,9 +5,12 @@
   "item.moviehubtv.remote": "Remote",
   "item.moviehubtv.remote.tip1": "Aim at a TV screen to show the cursor",
   "item.moviehubtv.remote.tip2": "Right-click: select   Left-click: power",
-  "item.moviehubtv.remote.tip3": "Scroll wheel: move through the guide",
+  "item.moviehubtv.remote.tip3": "Scroll wheel: guide, or volume while watching (sneak + scroll: volume)",
   "block.moviehubtv.tv_wide": "Wide TV",
   "block.moviehubtv.tv_large": "Large TV",
   "block.moviehubtv.tv_large_wide": "Large Wide TV",
-  "block.moviehubtv.speaker": "Speaker"
+  "block.moviehubtv.speaker": "Speaker",
+  "item.moviehubtv.remote.volume": "TV volume: %s",
+  "block.moviehubtv.speaker.linked": "Speaker linked to the TV at %s, %s, %s",
+  "block.moviehubtv.speaker.no_tv": "No TV within %s blocks to link this speaker to"
 }

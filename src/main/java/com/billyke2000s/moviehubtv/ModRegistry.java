@@ -1,6 +1,8 @@
 package com.billyke2000s.moviehubtv;
 
 import com.billyke2000s.moviehubtv.block.BigTvBlock;
+import com.billyke2000s.moviehubtv.block.SpeakerBlock;
+import com.billyke2000s.moviehubtv.block.SpeakerBlockEntity;
 import com.billyke2000s.moviehubtv.block.TvBlock;
 import com.billyke2000s.moviehubtv.block.TvBlockEntity;
 import com.billyke2000s.moviehubtv.item.RemoteItem;
@@ -10,7 +12,6 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -55,8 +56,8 @@ public final class ModRegistry {
                 .lightLevel(state -> state.getValue(TvBlock.POWERED) ? 6 : 0);
     }
 
-    /** Plain block; TVs within SpeakerMix.RADIUS blocks of one get louder and can be heard from it (client side). */
-    public static final DeferredBlock<Block> SPEAKER = BLOCKS.register("speaker", () -> new Block(
+    /** Plays the sound of the TV it is linked to (the nearest one when placed). */
+    public static final DeferredBlock<SpeakerBlock> SPEAKER = BLOCKS.register("speaker", () -> new SpeakerBlock(
             BlockBehaviour.Properties.of()
                     .mapColor(MapColor.WOOD)
                     .strength(1.0F)
@@ -81,6 +82,10 @@ public final class ModRegistry {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TvBlockEntity>> TV_BLOCK_ENTITY =
             BLOCK_ENTITIES.register("tv", () -> BlockEntityType.Builder.of(TvBlockEntity::new,
                     TV.get(), TV_WIDE.get(), TV_LARGE.get(), TV_LARGE_WIDE.get()).build(null));
+
+    @SuppressWarnings("DataFlowIssue")
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SpeakerBlockEntity>> SPEAKER_BLOCK_ENTITY =
+            BLOCK_ENTITIES.register("speaker", () -> BlockEntityType.Builder.of(SpeakerBlockEntity::new, SPEAKER.get()).build(null));
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("main",
             () -> CreativeModeTab.builder()
