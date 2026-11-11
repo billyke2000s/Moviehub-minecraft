@@ -10,8 +10,8 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 
 1. Install NeoForge for Minecraft 1.21.1.
 2. Put both jars in your `mods` folder:
-   - **MovieHub TV**: download `moviehubtv-*.jar` from the
-     [latest build](https://github.com/billyke2000s/moviehub-minecraft/releases/tag/latest).
+   - **MovieHub TV**: download `moviehubtv-<version>.jar` from the
+     [latest release](https://github.com/billyke2000s/moviehub-minecraft/releases/latest).
    - **WATERMeDIA 2.1.x** (2.1.37 or newer, **not 3.x**: WATERMeDIA 3 removed the VLC player this mod uses):
      [CurseForge](https://www.curseforge.com/minecraft/mc-mods/watermedia) or
      [Modrinth](https://modrinth.com/mod/watermedia).
@@ -85,6 +85,8 @@ python3 tests/run_tv_regressions.py  # JDK 21; isolated logic and model checks
 ```
 
 Every push to `main` is built by GitHub Actions and published as the `latest` pre-release.
+The first successful `main` build of each new `mod_version` (gradle.properties) is also published as a
+stable release tagged `v<mod_version>`; bump `mod_version` to release a new version.
 
 ## Status
 
