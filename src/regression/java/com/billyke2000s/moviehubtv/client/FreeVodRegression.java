@@ -40,6 +40,13 @@ public final class FreeVodRegression {
         check(items.get(0).id().equals(movie), "Preserve provider identity across tabs");
         check(items.get(0).playbackId().startsWith("vod:pluto:aaaaaaaaaaaaaaaaaaaaaaaa|"),
                 "Movie uses the actual provider episode ID, not its metadata ID or an expired token");
+        for (float width : new float[]{192, 271, 448}) {
+            float h = 160, button = (width - 10) / 4;
+            int[] expected = {8, 7, 9, 1};
+            for (int i = 0; i < 4; i++) check(PlayerControls.hit(width, h, 5 + button * (i + 0.5f), h - 12) == expected[i],
+                    "Existing popup control hit targets match on every supported screen width");
+            check(PlayerControls.hit(width, h, width / 2, h / 2) == 1, "Clicking the picture keeps the existing Guide action");
+        }
         System.out.println("PASS: free movies, shows, anime classification, episodes, locators and title matching");
     }
 }

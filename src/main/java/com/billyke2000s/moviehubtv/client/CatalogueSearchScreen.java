@@ -50,6 +50,7 @@ final class CatalogueSearchScreen extends Screen {
         return super.keyPressed(key, scan, modifiers);
     }
     public void render(GuiGraphics g, int mouseX, int mouseY, float partial) {
+        g.fill(Math.max(5, width / 2 - 190), height / 2 - 64, Math.min(width - 5, width / 2 + 190), height - 8, 0xE00A1630);
         super.render(g, mouseX, mouseY, partial);
         g.drawCenteredString(font, title, width / 2, height / 2 - 52, 0xFFFFC83D);
         int y = height / 2 + 40;

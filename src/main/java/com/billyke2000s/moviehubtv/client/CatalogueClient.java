@@ -13,13 +13,14 @@ final class CatalogueClient {
     private static final Map<Integer, Pending> PENDING = new HashMap<>();
     private static int serial;
     private static boolean settingsRequested;
+    private static long retrySettingsAt;
     static void tick() {
-        if (!settingsRequested && net.minecraft.client.Minecraft.getInstance().player != null) {
+        if (!settingsRequested && System.currentTimeMillis() >= retrySettingsAt && net.minecraft.client.Minecraft.getInstance().player != null) {
             settingsRequested = true;
             request("settings", 0, data -> {
                 if (data.has("playlists")) ChannelRepository.serverPlaylists(VodCatalogue.array(data, "playlists").asList()
                         .stream().filter(JsonElement::isJsonPrimitive).map(JsonElement::getAsString).toList());
-                else settingsRequested = false;
+                else { settingsRequested = false; retrySettingsAt = System.currentTimeMillis() + 5000; }
             });
         }
         long now = System.currentTimeMillis();
@@ -39,5 +40,5 @@ final class CatalogueClient {
         try { p.callback.accept(JsonParser.parseString(reply.json()).getAsJsonObject()); }
         catch (Exception e) { JsonObject error = new JsonObject(); error.addProperty("error", "Invalid catalogue response."); p.callback.accept(error); }
     }
-    static void clear() { PENDING.clear(); settingsRequested = false; ChannelRepository.serverPlaylists(List.of()); }
+    static void clear() { PENDING.clear(); settingsRequested = false; retrySettingsAt = 0; ChannelRepository.serverPlaylists(List.of()); }
 }
