@@ -19,6 +19,7 @@ import net.neoforged.neoforge.common.NeoForge;
 @Mod(value = MovieHubTV.MODID, dist = Dist.CLIENT)
 public final class MovieHubTVClient {
     public MovieHubTVClient(IEventBus modBus, ModContainer container) {
+        com.billyke2000s.moviehubtv.network.CataloguePayload.receiver = CatalogueClient::receive;
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         modBus.addListener(MovieHubTVClient::registerRenderers);
 
@@ -31,11 +32,15 @@ public final class MovieHubTVClient {
         game.addListener((ClientTickEvent.Post event) -> {
             RemoteControl.tick();
             TvVideoManager.tick();
+            CatalogueClient.tick();
         });
-        game.addListener((ClientPlayerNetworkEvent.LoggingOut event) -> TvVideoManager.releaseAll());
+        game.addListener((ClientPlayerNetworkEvent.LoggingOut event) -> {
+            TvVideoManager.releaseAll(); GuideRenderer.clear(); VodRepository.clear(); CatalogueClient.clear();
+        });
     }
 
     private static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModRegistry.TV_BLOCK_ENTITY.get(), TvRenderer::new);
     }
 }
+

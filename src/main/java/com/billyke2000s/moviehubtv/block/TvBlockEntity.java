@@ -27,6 +27,9 @@ public class TvBlockEntity extends BlockEntity {
     public static final int ACTION_REPAIR_LAYOUT = 4;
     public static final int ACTION_VOLUME_UP = 5;
     public static final int ACTION_VOLUME_DOWN = 6;
+    public static final int ACTION_PAUSE = 7;
+    public static final int ACTION_SEEK_BACK = 8;
+    public static final int ACTION_SEEK_FORWARD = 9;
 
     public static final int DEFAULT_VOLUME = 80;
     public static final int VOLUME_STEP = 5;
@@ -36,6 +39,9 @@ public class TvBlockEntity extends BlockEntity {
     private boolean on;
     private String channelId = "";
     private boolean guideOpen = true;
+    private boolean mediaPaused;
+    private long mediaPosition, mediaTick;
+    private int mediaRevision;
     private int volume = DEFAULT_VOLUME;
     private final List<BlockPos> speakers = new ArrayList<>();
     /** Place in a TV wall: column/row from the viewer's bottom-left, and the wall's size (1x1 = alone). */
@@ -51,6 +57,13 @@ public class TvBlockEntity extends BlockEntity {
     /** Speakers linked to this TV block (not the rest of its wall). */
     public List<BlockPos> speakers() { return List.copyOf(speakers); }
     public String channelId() { return channelId; }
+    public boolean isOnDemand() { return channelId.startsWith("vod:pluto:"); }
+    public boolean mediaPaused() { return mediaPaused; }
+    public int mediaRevision() { return mediaRevision; }
+    public long mediaPosition() {
+        long tick = level == null ? mediaTick : level.getGameTime();
+        return Math.max(0, mediaPosition + (!mediaPaused && on && isOnDemand() ? Math.max(0, tick - mediaTick) * 50 : 0));
+    }
     /** The guide shows when it was opened, or when nothing has been tuned yet. */
     public boolean isGuideShowing() { return on && (guideOpen || channelId.isEmpty()); }
 
@@ -84,6 +97,7 @@ public class TvBlockEntity extends BlockEntity {
     @Override
     public void onLoad() {
         super.onLoad();
+        if (level != null) mediaTick = level.getGameTime();
         if (!(level instanceof net.minecraft.server.level.ServerLevel server)) return;
         if (getBlockState().getBlock() instanceof BigTvBlock) {
             BigTvConverter.queue(server, worldPosition);
@@ -117,6 +131,8 @@ public class TvBlockEntity extends BlockEntity {
         }
         switch (action) {
             case ACTION_POWER -> {
+                mediaPosition = mediaPosition();
+                mediaTick = level.getGameTime();
                 on = !on;
                 if (on) guideOpen = true; // turning on goes straight to the TV guide
             }
@@ -126,9 +142,24 @@ public class TvBlockEntity extends BlockEntity {
             case ACTION_VOLUME_DOWN -> volume = Math.max(0, volume - VOLUME_STEP);
             case ACTION_TUNE -> {
                 if (channel == null || channel.isBlank()) return;
+                // Only fixed Pluto episode locators, never a client-supplied arbitrary URL.
+                if (channel.startsWith("vod:") && !channel.matches("vod:pluto:[0-9a-f]{24}\\|[^\\p{Cntrl}|]{1,100}")) return;
                 on = true;
                 channelId = channel;
                 guideOpen = false;
+                mediaPosition = 0; mediaTick = level.getGameTime(); mediaPaused = false;
+                mediaRevision++;
+            }
+            case ACTION_PAUSE -> {
+                if (!on || !isOnDemand()) return;
+                mediaPosition = mediaPosition(); mediaTick = level.getGameTime(); mediaPaused = !mediaPaused;
+                mediaRevision++;
+            }
+            case ACTION_SEEK_BACK, ACTION_SEEK_FORWARD -> {
+                if (!on || !isOnDemand()) return;
+                mediaPosition = Math.max(0, mediaPosition() + (action == ACTION_SEEK_BACK ? -10000 : 10000));
+                mediaTick = level.getGameTime();
+                mediaRevision++;
             }
             default -> { return; }
         }
@@ -188,6 +219,9 @@ public class TvBlockEntity extends BlockEntity {
         super.saveAdditional(tag, registries);
         tag.putBoolean("On", on);
         tag.putString("Channel", channelId);
+        tag.putBoolean("MediaPaused", mediaPaused);
+        tag.putLong("MediaPosition", mediaPosition());
+        tag.putInt("MediaRevision", mediaRevision);
         tag.putBoolean("Guide", guideOpen);
         tag.putIntArray("Wall", new int[]{wallX, wallY, wallW, wallH});
         tag.putInt("Volume", volume);
@@ -199,6 +233,10 @@ public class TvBlockEntity extends BlockEntity {
         super.loadAdditional(tag, registries);
         on = tag.getBoolean("On");
         channelId = tag.getString("Channel");
+        mediaPaused = tag.getBoolean("MediaPaused");
+        mediaPosition = Math.max(0, tag.getLong("MediaPosition"));
+        mediaRevision = tag.getInt("MediaRevision");
+        mediaTick = level == null ? 0 : level.getGameTime();
         guideOpen = !tag.contains("Guide") || tag.getBoolean("Guide");
         volume = tag.contains("Volume") ? Math.max(0, Math.min(100, tag.getInt("Volume"))) : DEFAULT_VOLUME;
         speakers.clear();
@@ -226,3 +264,4 @@ public class TvBlockEntity extends BlockEntity {
         return ClientboundBlockEntityDataPacket.create(this);
     }
 }
+

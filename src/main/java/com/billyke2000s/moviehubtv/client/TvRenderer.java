@@ -57,7 +57,7 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
             if (tv.isGuideShowing()) {
                 drawGuide(c, pos, tv, screen, pointed ? pointer : null);
             } else {
-                drawPicture(c, screen, channel, session, pointed);
+                drawPicture(c, screen, tv, channel, session, pointed ? pointer : null);
             }
         }
 
@@ -80,8 +80,9 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         c.pose.popPose();
     }
 
-    private void drawPicture(Canvas c, ScreenGeometry.Screen screen, ChannelRepository.Channel channel,
-                             TvVideoManager.Session session, boolean pointed) {
+    private void drawPicture(Canvas c, ScreenGeometry.Screen screen, TvBlockEntity tv, ChannelRepository.Channel channel,
+                             TvVideoManager.Session session, RemoteControl.Pointer pointer) {
+        boolean pointed = pointer != null;
         float w = screen.width();
         float h = screen.height();
         c.rect(0, 0, w, h, 0, BLACK);
@@ -98,7 +99,10 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         }
 
         boolean recentlyTuned = session != null && System.currentTimeMillis() - session.tunedAt < BANNER_MS;
-        if (channel != null && (recentlyTuned || pointed)) drawBanner(c, screen, channel, pointed);
+        if (channel != null && (recentlyTuned || pointed)) {
+            if (tv.isOnDemand()) PlayerControls.draw(c, screen, tv, channel, session, pointer);
+            else drawBanner(c, screen, channel, pointed);
+        }
     }
 
     private static String statusText(ChannelRepository.Channel channel, TvVideoManager.Session session) {
@@ -144,3 +148,4 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         return true; // the cursor can poke slightly past the screen edge
     }
 }
+

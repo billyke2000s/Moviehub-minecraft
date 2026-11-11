@@ -143,7 +143,11 @@ public final class RemoteControl {
             return;
         }
         if (!tv.isGuideShowing()) {
-            send(p.pos(), TvBlockEntity.ACTION_OPEN_GUIDE, "");
+            TvScreenLayout.Layout playingLayout = TvScreenLayout.resolve(Minecraft.getInstance().level, p.pos());
+            if (tv.isOnDemand() && playingLayout != null) {
+                ScreenGeometry.Screen playingScreen = ScreenGeometry.screen(playingLayout.width(), playingLayout.height());
+                send(p.pos(), PlayerControls.hit(playingScreen.width(), playingScreen.height(), p.u(), p.v()), "");
+            } else send(p.pos(), TvBlockEntity.ACTION_OPEN_GUIDE, "");
             return;
         }
         TvScreenLayout.Layout layout = TvScreenLayout.resolve(Minecraft.getInstance().level, p.pos());
@@ -155,12 +159,20 @@ public final class RemoteControl {
         GuideRenderer.Hit hit = GuideRenderer.hit(p.pos(), tv, new GuideLayout(screen.guideWidth()),
                 screen.toGuideU(p.u()), screen.toGuideV(p.v()));
         switch (hit.target()) {
+            case TAB -> GuideRenderer.chooseTab(p.pos(), hit.channelIndex());
+            case VOD -> {
+                String id = GuideRenderer.chooseVod(p.pos(), hit.channelIndex());
+                if (id != null) send(p.pos(), TvBlockEntity.ACTION_TUNE, id);
+            }
             case ROW -> send(p.pos(), TvBlockEntity.ACTION_TUNE, ChannelRepository.channels().get(hit.channelIndex()).id());
             case CATEGORY -> GuideRenderer.chooseCategory(p.pos(), hit.channelIndex());
-            case CATEGORIES -> GuideRenderer.toggleCategories(p.pos());
+            case CATEGORIES -> {
+                if (GuideRenderer.isVod(p.pos())) Minecraft.getInstance().setScreen(new CatalogueSearchScreen(p.pos()));
+                else GuideRenderer.toggleCategories(p.pos());
+            }
             case UP -> GuideRenderer.scrollBy(p.pos(), tv, -GuideRenderer.ROWS);
             case DOWN -> GuideRenderer.scrollBy(p.pos(), tv, GuideRenderer.ROWS);
-            case BACK -> send(p.pos(), TvBlockEntity.ACTION_CLOSE_GUIDE, "");
+            case BACK -> { if (!GuideRenderer.backVod(p.pos())) send(p.pos(), TvBlockEntity.ACTION_CLOSE_GUIDE, ""); }
             case NONE -> { }
         }
     }
@@ -179,3 +191,4 @@ public final class RemoteControl {
         PacketDistributor.sendToServer(new TvActionPayload(pos, action, channelId));
     }
 }
+

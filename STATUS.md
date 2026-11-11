@@ -1,5 +1,28 @@
 # Status
 
+## 0.9.0 — free Movies / Shows / Anime tabs
+
+- Existing on-TV blue guide, channel categories, remote cursor and player information banner retained.
+  The top bar now has Live TV, Movies, Shows and Anime. Movies and Shows browse Pluto's regional
+  free on-demand catalogue; a show opens its episodes. Anime uses Pluto's Anime category/genre,
+  not all children's animation. Availability depends on the player's real region.
+- Title search is in the footer. Optional `tmdb:movie:ID` / `tmdb:tv:ID` lookup uses a key/read token
+  stored only in the host's `config/moviehubtv-common.toml`. It matches the result against the free
+  Pluto catalogue; TMDB does not provide videos. Free browsing requires no TMDB key or account.
+- Free on-demand playback uses the existing WATERMeDIA player, with -10s / Play-Pause / +10s / Guide
+  controls inside the existing blue banner. Pause and seek state is server-owned. No paid-provider
+  setup, debrid account or subscription has been added.
+- Live TV additionally imports the public iptv-org list used by Android MovieHub (enabled by default
+  through a separate setting, including for existing installations). Public additional M3U URLs can
+  be set once on the host via `channelPlaylists`; clients receive those URLs, never the TMDB key.
+- Full Android source parity is NOT established: Android's provider-engine adapters, authenticated
+  accounts and site-specific free-VOD resolver runtime are not ported by this change. Native Samsung,
+  Plex, Roku, etc. still do not have dedicated adapters in the mod; some channels can appear in the
+  public lists. Do not claim every Android channel or movie is present or playable.
+- Verification pending: offline parser fixtures, existing TV regression suite and full GitHub Actions
+  compilation. No in-game or UK live-provider playback has been verified for this version.
+- Protocol `tv-0.9.0`: update the server and every client together.
+
 ## 0.8.1 — guide opens on categories
 
 - The guide first opens on the category list (All channels first) for each TV on each client; after
@@ -148,3 +171,4 @@ Version 0.5.5: TV walls regroup when loaded, so walls built before 0.5.2 get the
 - Samsung TV Plus, Plex, Roku and the other services MovieHub's Android app adapts are not included.
 - While the guide is open over a tuned channel, the sound keeps playing but the picture is hidden.
 - The guide is drawn on the block itself, so it is small; read it close up.
+

@@ -49,7 +49,7 @@ final class GuideRenderer {
     private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("HH:mm");
     private static final String[] COLUMN_NAMES = {"Now", "Next", "Later"};
 
-    enum Target { NONE, ROW, CATEGORY, UP, DOWN, BACK, CATEGORIES }
+    enum Target { NONE, ROW, CATEGORY, UP, DOWN, BACK, CATEGORIES, TAB, VOD }
 
     /** index: a channel index (ROW) or a category index (CATEGORY). */
     record Hit(Target target, int channelIndex) {
@@ -58,6 +58,10 @@ final class GuideRenderer {
 
     /** Per-TV guide state on this client. */
     private static final class State {
+        int tab; // Live TV, Movies, Shows, Anime. The existing guide stays intact below the tabs.
+        int vodScroll;
+        String query = "";
+        VodCatalogue.Item series;
         int category;          // index into ChannelRepository.categories(); 0 = All channels
         boolean picking = true; // showing the category list; the guide opens on it the first time
         Integer channelScroll; // null until first shown, then the first visible row
@@ -65,6 +69,34 @@ final class GuideRenderer {
     }
 
     private static final Map<BlockPos, State> STATES = new HashMap<>();
+
+    static void clear() { STATES.clear(); }
+    static boolean isVod(BlockPos pos) { return state(pos).tab != 0; }
+    static void chooseTab(BlockPos pos, int tab) {
+        State s = state(pos);
+        if (tab < 0 || tab > 3) return;
+        s.tab = tab; s.vodScroll = 0; s.query = ""; s.series = null;
+        if (tab != 0) VodRepository.ensureLoaded();
+    }
+    static void search(BlockPos pos, String query) {
+        State s = state(pos); s.query = query; s.vodScroll = 0; s.series = null;
+    }
+    static boolean backVod(BlockPos pos) {
+        State s = state(pos);
+        if (s.tab == 0 || s.series == null) return false;
+        s.series = null; s.vodScroll = 0; return true;
+    }
+    private static List<VodCatalogue.Item> vod(State s) {
+        return VodRepository.list(s.tab, s.series == null ? "" : s.series.id(), s.query);
+    }
+    /** Returns a playable free locator, or opens the selected show's episodes. */
+    static String chooseVod(BlockPos pos, int index) {
+        State s = state(pos); var list = vod(s);
+        if (index < 0 || index >= list.size()) return null;
+        var item = list.get(index);
+        if (item.series()) { s.series = item; s.vodScroll = 0; s.query = ""; VodRepository.loadEpisodes(item); return null; }
+        return item.playbackId();
+    }
 
     private static State state(BlockPos pos) {
         return STATES.computeIfAbsent(pos.immutable(), p -> new State());
@@ -86,12 +118,14 @@ final class GuideRenderer {
     }
 
     private static int count(State s) {
+        if (s.tab != 0) return vod(s).size();
         return s.picking ? ChannelRepository.categories().size() : visible(s).length;
     }
 
     static int scroll(BlockPos pos, TvBlockEntity tv) {
         State s = state(pos);
         int max = Math.max(0, count(s) - ROWS);
+        if (s.tab != 0) return Math.max(0, Math.min(max, s.vodScroll));
         if (s.picking) return Math.max(0, Math.min(max, s.categoryScroll));
         if (s.channelScroll == null) {
             // First time the guide is seen: start on the page with the current channel.
@@ -112,7 +146,8 @@ final class GuideRenderer {
         State s = state(pos);
         int max = Math.max(0, count(s) - ROWS);
         int next = Math.max(0, Math.min(max, scroll(pos, tv) + rows));
-        if (s.picking) s.categoryScroll = next;
+        if (s.tab != 0) s.vodScroll = next;
+        else if (s.picking) s.categoryScroll = next;
         else s.channelScroll = next;
     }
 
@@ -132,17 +167,20 @@ final class GuideRenderer {
 
     static Hit hit(BlockPos pos, TvBlockEntity tv, GuideLayout l, float u, float v) {
         State s = state(pos);
+        if (v >= 1 && v < HEADER_H - 1 && u >= 2 && u < 2 + tabWidth(l) * 4)
+            return new Hit(Target.TAB, (int) ((u - 2) / tabWidth(l)));
         if (v >= FOOTER_Y) {
             if (u >= 3 && u < 3 + GuideLayout.BUTTON_W) return new Hit(Target.UP, -1);
             if (u >= 23 && u < 23 + GuideLayout.BUTTON_W) return new Hit(Target.DOWN, -1);
             if (u >= l.categoriesX() && u < l.categoriesX() + GuideLayout.CATEGORIES_W) return new Hit(Target.CATEGORIES, -1);
-            if (u >= l.backX() && u < l.backX() + GuideLayout.BACK_W && !tv.channelId().isEmpty()) return new Hit(Target.BACK, -1);
+            if (u >= l.backX() && u < l.backX() + GuideLayout.BACK_W && (!tv.channelId().isEmpty() || s.series != null)) return new Hit(Target.BACK, -1);
             return Hit.NONE;
         }
         if (v < ROW_Y0 || u < GuideLayout.CH_X || u >= l.rowRight()) return Hit.NONE;
         int row = (int) ((v - ROW_Y0) / ROW_STEP);
         if (row >= ROWS || (v - ROW_Y0) - row * ROW_STEP >= ROW_H) return Hit.NONE;
         int index = scroll(pos, tv) + row;
+        if (s.tab != 0) return index < vod(s).size() ? new Hit(Target.VOD, index) : Hit.NONE;
         if (s.picking) {
             return index < ChannelRepository.categories().size() ? new Hit(Target.CATEGORY, index) : Hit.NONE;
         }
@@ -156,13 +194,22 @@ final class GuideRenderer {
 
         // Header: title and category, column names on wide screens, clock
         c.panel(0, 0, l.width, HEADER_H, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
-        String title = s.picking ? "TV Guide  -  Categories" : "TV Guide  -  " + categoryName(s);
-        float titleRoom = (l.columns > 1 && !s.picking ? GuideLayout.PROG_X : l.width - 40) - 8;
-        c.text(c.fit(title, titleRoom, 0.8f), 5, 5, 1, 0.8f, WHITE);
-        if (l.columns > 1 && !s.picking) {
-            for (int col = 0; col < l.columns; col++) c.text(COLUMN_NAMES[col], l.columnX(col) + 3, 5, 1, 0.8f, SUB);
+        String[] labels = {"Live TV", "Movies", "Shows", "Anime"};
+        Hit hover = pointer != null ? hit(pos, tv, l, pointer.u(), pointer.v()) : Hit.NONE;
+        for (int i = 0; i < labels.length; i++) {
+            float x = 2 + i * tabWidth(l), w = tabWidth(l) - 1;
+            boolean over = hover.target() == Target.TAB && hover.channelIndex() == i;
+            c.panel(x, 1, w, HEADER_H - 2, 0.7f, over ? CH_HOVER : s.tab == i ? CH : BAR_DARK, EDGE_LIGHT, EDGE_DARK);
+            c.textCentered(labels[i], x + w / 2, 5, 1, 0.7f, s.tab == i || over ? GOLD : WHITE);
         }
         c.textRight(LocalTime.now().format(CLOCK), l.width - 5, 5, 1, 0.8f, GOLD);
+
+        if (s.tab != 0) {
+            int first = scroll(pos, tv);
+            drawVod(c, s, l, first, hover);
+            drawFooter(c, s, tv, l, first, count(s), hover);
+            return;
+        }
 
         List<ChannelRepository.Channel> channels = ChannelRepository.channels();
         if (channels.isEmpty()) {
@@ -172,11 +219,33 @@ final class GuideRenderer {
             return;
         }
 
-        Hit hover = pointer != null ? hit(pos, tv, l, pointer.u(), pointer.v()) : Hit.NONE;
         int first = scroll(pos, tv);
         if (s.picking) drawCategories(c, s, l, first, hover);
         else drawChannels(c, s, tv, l, first, hover, channels);
         drawFooter(c, s, tv, l, first, count(s), hover);
+    }
+
+    private static float tabWidth(GuideLayout l) { return Math.min(58, (l.width - 42) / 4); }
+
+    private static void drawVod(Canvas c, State s, GuideLayout l, int first, Hit hover) {
+        var items = vod(s);
+        if (items.isEmpty()) {
+            String message = !s.query.isEmpty() ? "No free match - try another title" : s.series != null
+                    ? VodRepository.episodeStatus(s.series.id()) : VodRepository.loading() ? "Loading free titles..."
+                    : VodRepository.all().isEmpty() ? VodRepository.status() : "No free titles in this section for your region";
+            c.textCentered(c.fit(message, l.width - 10, 0.7f), l.width / 2, 68, 1, 0.7f, SUB);
+            c.textCentered("Search: title or tmdb:movie:ID / tmdb:tv:ID", l.width / 2, 84, 1, 0.55f, SUB);
+        }
+        for (int row = 0; row < ROWS && first + row < items.size(); row++) {
+            int index = first + row; var item = items.get(index);
+            float y = ROW_Y0 + row * ROW_STEP, w = l.rowRight() - GuideLayout.CH_X;
+            boolean over = hover.target() == Target.VOD && hover.channelIndex() == index;
+            c.panel(GuideLayout.CH_X, y, w, ROW_H, 0.5f, over ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
+            c.text(c.fit(item.title(), w - 30, 0.75f), 6, y + 2, 1, 0.75f, WHITE);
+            c.text(c.fit(item.subtitle(), w - 12, 0.6f), 6, y + 10, 1, 0.6f, SUB);
+            c.textRight(item.series() ? ">" : "Play", l.rowRight() - 4, y + 4, 1, 0.65f, GOLD);
+            if (over) c.outline(GuideLayout.CH_X - 1, y - 1, w + 2, ROW_H + 2, 1.2f, GOLD);
+        }
     }
 
     private static void drawCategories(Canvas c, State s, GuideLayout l, int first, Hit hover) {
@@ -268,10 +337,10 @@ final class GuideRenderer {
             String page = (first + 1) + "-" + last + " of " + total;
             c.text(c.fit(page, l.pageW(), 0.7f), l.pageX(), FOOTER_Y + 5, 1, 0.7f, SUB);
         }
-        button(c, l.categoriesX(), GuideLayout.CATEGORIES_W, s.picking ? "Channels" : "Categories",
+        button(c, l.categoriesX(), GuideLayout.CATEGORIES_W, s.tab != 0 ? "Search" : s.picking ? "Channels" : "Categories",
                 hover.target() == Target.CATEGORIES, 0.6f);
-        if (!tv.channelId().isEmpty()) {
-            button(c, l.backX(), GuideLayout.BACK_W, "Back to TV", hover.target() == Target.BACK, 0.6f);
+        if (!tv.channelId().isEmpty() || s.series != null) {
+            button(c, l.backX(), GuideLayout.BACK_W, s.series != null ? "Back" : "Back to TV", hover.target() == Target.BACK, 0.6f);
         }
     }
 
@@ -286,3 +355,4 @@ final class GuideRenderer {
         return LocalTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()).format(CLOCK);
     }
 }
+

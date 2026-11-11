@@ -29,6 +29,7 @@ final class TvVideoManager {
         String channelId = "";
         long tunedAt;
         boolean registered;
+        int mediaRevision = -1;
 
         Session(BlockPos pos) {
             this.pos = pos;
@@ -81,6 +82,10 @@ final class TvVideoManager {
             }
             // Pluto links need a current session token; while it is being fetched, try again next frame.
             String url = channel.url();
+            if (url.startsWith("pluto-vod:")) {
+                url = PlutoClient.streamUrl(url.substring("pluto-vod:".length()), true);
+                if (url == null) return s;
+            }
             if (PlutoClient.isPlutoId(channel.id())) {
                 url = PlutoClient.streamUrl(channel.id());
                 if (url == null) return s;
@@ -89,6 +94,7 @@ final class TvVideoManager {
             s.player = new VideoPlayer(Minecraft.getInstance());
             s.channelId = channel.id();
             s.tunedAt = System.currentTimeMillis();
+            s.mediaRevision = -1;
             final VideoPlayer player = s.player;
             if (!s.registered) {
                 Minecraft.getInstance().getTextureManager().register(s.texture,
@@ -129,6 +135,16 @@ final class TvVideoManager {
                 continue;
             }
             if (s.player != null) {
+                // Apply controls once after VLC is ready; do not repeatedly seek through ad breaks.
+                if (tv.isOnDemand() && s.mediaRevision != tv.mediaRevision()
+                        && (s.player.isPlaying() || s.player.isPaused())) {
+                    long duration = s.player.getDuration();
+                    long target = tv.mediaPosition();
+                    if (duration > 0) target = Math.min(target, Math.max(0, duration - 1000));
+                    if (s.player.isSeekAble()) s.player.seekTo(target);
+                    s.player.setPauseMode(tv.mediaPaused());
+                    s.mediaRevision = tv.mediaRevision();
+                }
                 List<BlockPos> speakers = speakers(mc, layout);
                 double[] toSpeakers = new double[speakers.size()];
                 for (int i = 0; i < toSpeakers.length; i++) {
@@ -160,3 +176,4 @@ final class TvVideoManager {
         SESSIONS.clear();
     }
 }
+

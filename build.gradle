@@ -84,3 +84,11 @@ neoForge.ideSyncTask generateModMetadata
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+tasks.register('freeVodRegression', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.billyke2000s.moviehubtv.client.FreeVodRegression'
+}
+tasks.named('check') { dependsOn 'freeVodRegression' }
+
