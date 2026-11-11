@@ -1,5 +1,20 @@
 # Status
 
+## 0.8.0 — guide categories and full-width guide
+
+- The guide fills the screen width (canvas 160 tall, at least 192 wide): 1x1 = 192, 2x2 = 192 (shrunk),
+  3x2 ≈ 271 (Now + Next columns), 2x1 = 448 (Now, Next, Later). Narrow screens keep the now/next cell.
+  `GuideLayout` holds the positions; rendering and the remote's hit test both use it.
+- Categories button: All channels, keyword genres, Pluto TV, UK, then playlist groups A-Z, built by
+  `ChannelCategories` when channels load; empty ones hidden. Channel records now keep their playlist
+  group and Pluto's `category` field when the catalogue has one (not verified that Pluto sends it).
+  Category, page and picker state are per TV on each client, not shared or saved.
+- Client-only change: network version stays `tv-0.7.0`, so a 0.7.x server works; players should update.
+- Verified: regression script tests `GuideLayout` for every TV size and `ChannelCategories`; on the real
+  playlists (11 Nov 2026, approximating the mod's filters) 2,098 channels gave 104 categories (e.g.
+  News 172, Sport 44, Movies 32, Kids 28, UK 48). Full build: GitHub Actions. Not tested in-game: how
+  the wider guide and columns look and read, category picking with the remote.
+
 ## 0.7.2 — only tuned speakers work
 
 - Removed nearest-TV linking: a speaker plays a TV only if it was tuned by right-clicking that TV with

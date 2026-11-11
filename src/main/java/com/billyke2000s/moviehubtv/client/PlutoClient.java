@@ -46,7 +46,8 @@ final class PlutoClient {
     private static final String CLIENT_ID = UUID.randomUUID().toString();
 
     record Session(String token, String stitcher, String channels, String stitcherParams, String country, long expiresAt) {}
-    record PlutoChannel(String id, String name, int number) {}
+    /** category is Pluto's genre name when the catalogue includes one, otherwise "". */
+    record PlutoChannel(String id, String name, int number, String category) {}
 
     private static volatile Session session;
     private static volatile boolean booting;
@@ -213,7 +214,8 @@ final class PlutoClient {
             String name = c.has("name") ? c.get("name").getAsString().trim() : "";
             if (!isPlutoId(id) || name.isEmpty() || !seen.add(id)) continue;
             int number = c.has("number") && c.get("number").isJsonPrimitive() ? c.get("number").getAsInt() : Integer.MAX_VALUE;
-            out.add(new PlutoChannel(id, name, number));
+            String category = c.has("category") && c.get("category").isJsonPrimitive() ? c.get("category").getAsString() : "";
+            out.add(new PlutoChannel(id, name, number, category));
         }
         out.sort(Comparator.comparingInt(PlutoChannel::number));
         return out;

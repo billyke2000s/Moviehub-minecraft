@@ -11,21 +11,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** The Sky-style TV guide, drawn in a blocky Minecraft look on the TV canvas. */
+/**
+ * The Sky-style TV guide, drawn in a blocky Minecraft look on the TV canvas.
+ *
+ * The canvas is {@link ScreenGeometry#GUIDE_HEIGHT} tall and as wide as the screen allows (at least 192),
+ * see {@link GuideLayout}. Wide screens show Now / Next / Later in separate columns. The Categories button
+ * switches the list to the categories from {@link ChannelCategories}; picking one filters the channels.
+ * Category, page and picker state are per TV and per player (client side only).
+ */
 final class GuideRenderer {
     private GuideRenderer() {}
 
-    // Layout (canvas is 192 x 160)
     static final int HEADER_H = 16;
     static final int ROW_Y0 = 18;
     static final int ROW_H = 17;
     static final int ROW_STEP = 18;
     static final int ROWS = 7;
     static final int FOOTER_Y = 145;
-    static final int CH_X = 2;
-    static final int CH_W = 60;
-    static final int PROG_X = 64;
-    static final int PROG_W = 126;
 
     // Colours (ARGB)
     private static final int BG = 0xFF0A1630;
@@ -44,123 +46,239 @@ final class GuideRenderer {
     private static final int GREEN = 0xFF4CD964;
 
     private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("HH:mm");
+    private static final String[] COLUMN_NAMES = {"Now", "Next", "Later"};
 
-    enum Target { NONE, ROW, UP, DOWN, BACK }
+    enum Target { NONE, ROW, CATEGORY, UP, DOWN, BACK, CATEGORIES }
 
+    /** index: a channel index (ROW) or a category index (CATEGORY). */
     record Hit(Target target, int channelIndex) {
         static final Hit NONE = new Hit(Target.NONE, -1);
     }
 
-    private static final Map<BlockPos, Integer> SCROLL = new HashMap<>();
+    /** Per-TV guide state on this client. */
+    private static final class State {
+        int category;          // index into ChannelRepository.categories(); 0 = All channels
+        boolean picking;       // showing the category list
+        Integer channelScroll; // null until first shown, then the first visible row
+        int categoryScroll;
+    }
+
+    private static final Map<BlockPos, State> STATES = new HashMap<>();
+
+    private static State state(BlockPos pos) {
+        return STATES.computeIfAbsent(pos.immutable(), p -> new State());
+    }
+
+    /** Channel indices (into ChannelRepository.channels()) in the TV's current category. */
+    private static int[] visible(State s) {
+        List<ChannelCategories.Category> cats = ChannelRepository.categories();
+        if (s.category > 0 && s.category < cats.size()) return cats.get(s.category).indices();
+        int n = ChannelRepository.channels().size();
+        int[] all = new int[n];
+        for (int i = 0; i < n; i++) all[i] = i;
+        return all;
+    }
+
+    private static String categoryName(State s) {
+        List<ChannelCategories.Category> cats = ChannelRepository.categories();
+        return s.category > 0 && s.category < cats.size() ? cats.get(s.category).name() : ChannelCategories.ALL;
+    }
+
+    private static int count(State s) {
+        return s.picking ? ChannelRepository.categories().size() : visible(s).length;
+    }
 
     static int scroll(BlockPos pos, TvBlockEntity tv) {
-        List<ChannelRepository.Channel> channels = ChannelRepository.channels();
-        int max = Math.max(0, channels.size() - ROWS);
-        Integer stored = SCROLL.get(pos);
-        if (stored == null) {
+        State s = state(pos);
+        int max = Math.max(0, count(s) - ROWS);
+        if (s.picking) return Math.max(0, Math.min(max, s.categoryScroll));
+        if (s.channelScroll == null) {
             // First time the guide is seen: start on the page with the current channel.
             int start = 0;
             ChannelRepository.Channel current = ChannelRepository.channel(tv.channelId());
-            if (current != null) start = channels.indexOf(current);
-            stored = start;
-            if (!channels.isEmpty()) SCROLL.put(pos.immutable(), stored);
+            int[] list = visible(s);
+            if (current != null) {
+                int index = ChannelRepository.channels().indexOf(current);
+                for (int i = 0; i < list.length; i++) if (list[i] == index) { start = i; break; }
+            }
+            if (list.length > 0) s.channelScroll = start;
+            return Math.max(0, Math.min(max, start));
         }
-        return Math.max(0, Math.min(max, stored));
+        return Math.max(0, Math.min(max, s.channelScroll));
     }
 
     static void scrollBy(BlockPos pos, TvBlockEntity tv, int rows) {
-        int max = Math.max(0, ChannelRepository.channels().size() - ROWS);
-        SCROLL.put(pos.immutable(), Math.max(0, Math.min(max, scroll(pos, tv) + rows)));
+        State s = state(pos);
+        int max = Math.max(0, count(s) - ROWS);
+        int next = Math.max(0, Math.min(max, scroll(pos, tv) + rows));
+        if (s.picking) s.categoryScroll = next;
+        else s.channelScroll = next;
     }
 
-    static Hit hit(BlockPos pos, TvBlockEntity tv, float u, float v) {
+    /** Opens or closes the category list (the Categories / Channels button). */
+    static void toggleCategories(BlockPos pos) {
+        State s = state(pos);
+        s.picking = !s.picking;
+        if (s.picking) s.categoryScroll = Math.max(0, s.category - ROWS / 2);
+    }
+
+    static void chooseCategory(BlockPos pos, int category) {
+        State s = state(pos);
+        s.category = category;
+        s.picking = false;
+        s.channelScroll = 0;
+    }
+
+    static Hit hit(BlockPos pos, TvBlockEntity tv, GuideLayout l, float u, float v) {
+        State s = state(pos);
         if (v >= FOOTER_Y) {
-            if (u >= 3 && u < 21) return new Hit(Target.UP, -1);
-            if (u >= 23 && u < 41) return new Hit(Target.DOWN, -1);
-            if (u >= 146 && u < 190 && !tv.channelId().isEmpty()) return new Hit(Target.BACK, -1);
+            if (u >= 3 && u < 3 + GuideLayout.BUTTON_W) return new Hit(Target.UP, -1);
+            if (u >= 23 && u < 23 + GuideLayout.BUTTON_W) return new Hit(Target.DOWN, -1);
+            if (u >= l.categoriesX() && u < l.categoriesX() + GuideLayout.CATEGORIES_W) return new Hit(Target.CATEGORIES, -1);
+            if (u >= l.backX() && u < l.backX() + GuideLayout.BACK_W && !tv.channelId().isEmpty()) return new Hit(Target.BACK, -1);
             return Hit.NONE;
         }
-        if (v < ROW_Y0 || u < CH_X || u >= PROG_X + PROG_W) return Hit.NONE;
+        if (v < ROW_Y0 || u < GuideLayout.CH_X || u >= l.rowRight()) return Hit.NONE;
         int row = (int) ((v - ROW_Y0) / ROW_STEP);
         if (row >= ROWS || (v - ROW_Y0) - row * ROW_STEP >= ROW_H) return Hit.NONE;
         int index = scroll(pos, tv) + row;
-        if (index >= ChannelRepository.channels().size()) return Hit.NONE;
-        return new Hit(Target.ROW, index);
+        if (s.picking) {
+            return index < ChannelRepository.categories().size() ? new Hit(Target.CATEGORY, index) : Hit.NONE;
+        }
+        int[] list = visible(s);
+        return index < list.length ? new Hit(Target.ROW, list[index]) : Hit.NONE;
     }
 
-    static void draw(Canvas c, BlockPos pos, TvBlockEntity tv, RemoteControl.Pointer pointer) {
-        c.rect(0, 0, ScreenGeometry.GUIDE_WIDTH, ScreenGeometry.GUIDE_HEIGHT, 0, BG);
+    static void draw(Canvas c, BlockPos pos, TvBlockEntity tv, GuideLayout l, RemoteControl.Pointer pointer) {
+        State s = state(pos);
+        c.rect(0, 0, l.width, ScreenGeometry.GUIDE_HEIGHT, 0, BG);
 
-        // Header
-        c.panel(0, 0, ScreenGeometry.GUIDE_WIDTH, HEADER_H, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
-        c.text("TV Guide", 5, 5, 1, 0.8f, WHITE);
-        c.textRight(LocalTime.now().format(CLOCK), ScreenGeometry.GUIDE_WIDTH - 5, 5, 1, 0.8f, GOLD);
+        // Header: title and category, column names on wide screens, clock
+        c.panel(0, 0, l.width, HEADER_H, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
+        String title = s.picking ? "TV Guide  -  Categories" : "TV Guide  -  " + categoryName(s);
+        float titleRoom = (l.columns > 1 && !s.picking ? GuideLayout.PROG_X : l.width - 40) - 8;
+        c.text(c.fit(title, titleRoom, 0.8f), 5, 5, 1, 0.8f, WHITE);
+        if (l.columns > 1 && !s.picking) {
+            for (int col = 0; col < l.columns; col++) c.text(COLUMN_NAMES[col], l.columnX(col) + 3, 5, 1, 0.8f, SUB);
+        }
+        c.textRight(LocalTime.now().format(CLOCK), l.width - 5, 5, 1, 0.8f, GOLD);
 
         List<ChannelRepository.Channel> channels = ChannelRepository.channels();
         if (channels.isEmpty()) {
             String status = ChannelRepository.status();
-            c.textCentered(status.isEmpty() ? "Tuning in..." : status, ScreenGeometry.GUIDE_WIDTH / 2f, 72, 1, 0.8f, SUB);
-            drawFooter(c, tv, pointer, 0, 0, Hit.NONE);
+            c.textCentered(status.isEmpty() ? "Tuning in..." : status, l.width / 2f, 72, 1, 0.8f, SUB);
+            drawFooter(c, s, tv, l, 0, 0, Hit.NONE);
             return;
         }
 
-        Hit hover = pointer != null ? hit(pos, tv, pointer.u(), pointer.v()) : Hit.NONE;
+        Hit hover = pointer != null ? hit(pos, tv, l, pointer.u(), pointer.v()) : Hit.NONE;
         int first = scroll(pos, tv);
-        long now = System.currentTimeMillis();
+        if (s.picking) drawCategories(c, s, l, first, hover);
+        else drawChannels(c, s, tv, l, first, hover, channels);
+        drawFooter(c, s, tv, l, first, count(s), hover);
+    }
+
+    private static void drawCategories(Canvas c, State s, GuideLayout l, int first, Hit hover) {
+        List<ChannelCategories.Category> cats = ChannelRepository.categories();
         for (int row = 0; row < ROWS; row++) {
             int index = first + row;
-            if (index >= channels.size()) break;
+            if (index >= cats.size()) break;
+            ChannelCategories.Category cat = cats.get(index);
+            float y = ROW_Y0 + row * ROW_STEP;
+            boolean hovered = hover.target() == Target.CATEGORY && hover.channelIndex() == index;
+            float w = l.rowRight() - GuideLayout.CH_X;
+            c.panel(GuideLayout.CH_X, y, w, ROW_H, 0.5f, hovered ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
+            if (index == s.category) c.rect(GuideLayout.CH_X + 3, y + 7, 3, 3, 1, GREEN);
+            c.text(c.fit(cat.name(), w - 60, 0.8f), GuideLayout.CH_X + 9, y + 5, 1, 0.8f, WHITE);
+            c.textRight(cat.indices().length + " channels", l.rowRight() - 4, y + 5.5f, 1, 0.7f, SUB);
+            if (hovered) c.outline(GuideLayout.CH_X - 1, y - 1, w + 2, ROW_H + 2, 1.2f, GOLD);
+        }
+    }
+
+    private static void drawChannels(Canvas c, State s, TvBlockEntity tv, GuideLayout l, int first, Hit hover,
+                                     List<ChannelRepository.Channel> channels) {
+        int[] list = visible(s);
+        long now = System.currentTimeMillis();
+        for (int row = 0; row < ROWS; row++) {
+            int pos = first + row;
+            if (pos >= list.length) break;
+            int index = list[pos];
             ChannelRepository.Channel ch = channels.get(index);
             float y = ROW_Y0 + row * ROW_STEP;
             boolean hovered = hover.target() == Target.ROW && hover.channelIndex() == index;
             boolean tuned = ch.id().equals(tv.channelId());
 
             // Channel cell: number and name
-            c.panel(CH_X, y, CH_W, ROW_H, 0.5f, hovered ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
-            c.text(String.valueOf(ch.number()), CH_X + 3, y + 2, 1, 0.75f, GOLD);
-            if (tuned) c.rect(CH_X + CH_W - 6, y + 3, 3, 3, 1, GREEN);
-            c.text(c.fit(ch.name(), CH_W - 5, 0.75f), CH_X + 3, y + 9.5f, 1, 0.75f, WHITE);
+            c.panel(GuideLayout.CH_X, y, GuideLayout.CH_W, ROW_H, 0.5f, hovered ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
+            c.text(String.valueOf(ch.number()), GuideLayout.CH_X + 3, y + 2, 1, 0.75f, GOLD);
+            if (tuned) c.rect(GuideLayout.CH_X + GuideLayout.CH_W - 6, y + 3, 3, 3, 1, GREEN);
+            c.text(c.fit(ch.name(), GuideLayout.CH_W - 5, 0.75f), GuideLayout.CH_X + 3, y + 9.5f, 1, 0.75f, WHITE);
 
-            // Programme cell: now and next
-            c.panel(PROG_X, y, PROG_W, ROW_H, 0.5f, hovered ? PROG_HOVER : PROG, EDGE_LIGHT, EDGE_DARK);
-            ChannelRepository.Programme[] nn = ChannelRepository.nowAndNext(ch.id(), now);
-            String nowTitle = nn[0] != null ? nn[0].title() : "No listings";
-            c.text(c.fit(nowTitle, PROG_W - 6, 0.75f), PROG_X + 3, y + 2, 1, 0.75f, nn[0] != null ? WHITE : SUB);
-            if (nn[1] != null) {
-                String next = time(nn[1].start()) + "  " + nn[1].title();
-                c.text(c.fit(next, PROG_W - 6, 0.7f), PROG_X + 3, y + 9.5f, 1, 0.7f, SUB);
-            }
-            if (nn[0] != null) {
-                float progress = (float) (now - nn[0].start()) / (float) (nn[0].stop() - nn[0].start());
-                progress = Math.max(0, Math.min(1, progress));
-                c.rect(PROG_X + 1, y + ROW_H - 2, (PROG_W - 2) * progress, 1, 0.8f, GOLD);
-            }
-            if (hovered) c.outline(CH_X - 1, y - 1, PROG_X + PROG_W - CH_X + 2, ROW_H + 2, 1.2f, GOLD);
+            List<ChannelRepository.Programme> shows = ChannelRepository.upcoming(ch.id(), now, Math.max(2, l.columns));
+            if (l.columns == 1) drawNowNextCell(c, l, y, hovered, shows, now);
+            else drawColumns(c, l, y, hovered, shows, now);
+            if (hovered) c.outline(GuideLayout.CH_X - 1, y - 1, l.rowRight() - GuideLayout.CH_X + 2, ROW_H + 2, 1.2f, GOLD);
         }
-        drawFooter(c, tv, pointer, first, channels.size(), hover);
     }
 
-    private static void drawFooter(Canvas c, TvBlockEntity tv, RemoteControl.Pointer pointer, int first, int total, Hit hover) {
-        c.panel(0, FOOTER_Y, ScreenGeometry.GUIDE_WIDTH, ScreenGeometry.GUIDE_HEIGHT - FOOTER_Y, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
-        button(c, 3, "▲", hover.target() == Target.UP);
-        button(c, 23, "▼", hover.target() == Target.DOWN);
+    /** Narrow screens: one programme cell with now on top and next underneath. */
+    private static void drawNowNextCell(Canvas c, GuideLayout l, float y, boolean hovered,
+                                        List<ChannelRepository.Programme> shows, long now) {
+        float x = GuideLayout.PROG_X, w = l.progW;
+        c.panel(x, y, w, ROW_H, 0.5f, hovered ? PROG_HOVER : PROG, EDGE_LIGHT, EDGE_DARK);
+        ChannelRepository.Programme on = shows.isEmpty() || shows.get(0).start() > now ? null : shows.get(0);
+        ChannelRepository.Programme next = on == null ? (shows.isEmpty() ? null : shows.get(0)) : (shows.size() > 1 ? shows.get(1) : null);
+        c.text(c.fit(on != null ? on.title() : "No listings", w - 6, 0.75f), x + 3, y + 2, 1, 0.75f, on != null ? WHITE : SUB);
+        if (next != null) c.text(c.fit(time(next.start()) + "  " + next.title(), w - 6, 0.7f), x + 3, y + 9.5f, 1, 0.7f, SUB);
+        if (on != null) progress(c, x, y, w, on, now);
+    }
+
+    /** Wide screens: Now / Next / Later each in its own cell, with times. */
+    private static void drawColumns(Canvas c, GuideLayout l, float y, boolean hovered,
+                                    List<ChannelRepository.Programme> shows, long now) {
+        boolean somethingOn = !shows.isEmpty() && shows.get(0).start() <= now;
+        for (int col = 0; col < l.columns; col++) {
+            float x = l.columnX(col), w = l.columnW();
+            c.panel(x, y, w, ROW_H, 0.5f, hovered ? PROG_HOVER : PROG, EDGE_LIGHT, EDGE_DARK);
+            // Column 0 is what is on now; if nothing is on, it stays empty and the rest move along.
+            int index = somethingOn ? col : col - 1;
+            ChannelRepository.Programme p = index >= 0 && index < shows.size() ? shows.get(index) : null;
+            if (p == null) {
+                if (col == 0) c.text(shows.isEmpty() ? "No listings" : "Off air", x + 3, y + 5.5f, 1, 0.75f, SUB);
+                continue;
+            }
+            c.text(c.fit(p.title(), w - 6, 0.75f), x + 3, y + 2, 1, 0.75f, col == 0 ? WHITE : 0xFFDCE6F5);
+            c.text(c.fit(time(p.start()) + " - " + time(p.stop()), w - 6, 0.65f), x + 3, y + 9.5f, 1, 0.65f, SUB);
+            if (col == 0) progress(c, x, y, w, p, now);
+        }
+    }
+
+    private static void progress(Canvas c, float x, float y, float w, ChannelRepository.Programme on, long now) {
+        float done = (float) (now - on.start()) / (float) Math.max(1, on.stop() - on.start());
+        c.rect(x + 1, y + ROW_H - 2, (w - 2) * Math.max(0, Math.min(1, done)), 1, 0.8f, GOLD);
+    }
+
+    private static void drawFooter(Canvas c, State s, TvBlockEntity tv, GuideLayout l, int first, int total, Hit hover) {
+        c.panel(0, FOOTER_Y, l.width, ScreenGeometry.GUIDE_HEIGHT - FOOTER_Y, 0.5f, BAR, BAR_LIGHT, BAR_DARK);
+        button(c, 3, GuideLayout.BUTTON_W, "▲", hover.target() == Target.UP, 0.8f);
+        button(c, 23, GuideLayout.BUTTON_W, "▼", hover.target() == Target.DOWN, 0.8f);
         if (total > 0) {
             int last = Math.min(total, first + ROWS);
-            String page = (101 + first) + "-" + (100 + last) + " of " + total;
-            c.text(page, 46, FOOTER_Y + 5, 1, 0.7f, SUB);
+            String page = (first + 1) + "-" + last + " of " + total;
+            c.text(c.fit(page, l.pageW(), 0.7f), l.pageX(), FOOTER_Y + 5, 1, 0.7f, SUB);
         }
+        button(c, l.categoriesX(), GuideLayout.CATEGORIES_W, s.picking ? "Channels" : "Categories",
+                hover.target() == Target.CATEGORIES, 0.6f);
         if (!tv.channelId().isEmpty()) {
-            boolean hovered = hover.target() == Target.BACK;
-            c.panel(146, FOOTER_Y + 2, 44, 11, 1, hovered ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
-            c.textCentered("Back to TV", 168, FOOTER_Y + 4.5f, 1.5f, 0.6f, WHITE);
-            if (hovered) c.outline(145, FOOTER_Y + 1, 46, 13, 1.6f, GOLD);
+            button(c, l.backX(), GuideLayout.BACK_W, "Back to TV", hover.target() == Target.BACK, 0.6f);
         }
     }
 
-    private static void button(Canvas c, float x, String label, boolean hovered) {
-        c.panel(x, FOOTER_Y + 2, 18, 11, 1, hovered ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
-        c.textCentered(label, x + 9, FOOTER_Y + 3.5f, 1.5f, 0.8f, hovered ? GOLD : WHITE);
-        if (hovered) c.outline(x - 1, FOOTER_Y + 1, 20, 13, 1.6f, GOLD);
+    private static void button(Canvas c, float x, float w, String label, boolean hovered, float scale) {
+        c.panel(x, FOOTER_Y + 2, w, 11, 1, hovered ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
+        float y = scale >= 0.8f ? FOOTER_Y + 3.5f : FOOTER_Y + 4.5f;
+        c.textCentered(c.fit(label, w - 2, scale), x + w / 2, y, 1.5f, scale, hovered ? GOLD : WHITE);
+        if (hovered) c.outline(x - 1, FOOTER_Y + 1, w + 2, 13, 1.6f, GOLD);
     }
 
     static String time(long millis) {

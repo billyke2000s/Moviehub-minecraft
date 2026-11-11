@@ -117,6 +117,60 @@ public class SpeakerTest {
  }
 }'''
 
+GUIDE_TEST = r'''package com.billyke2000s.moviehubtv.client;
+import java.util.*;
+public class GuideTest {
+ static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
+ public static void main(String[] a){
+  // Canvas widths of the real screens (height 160): 1x1 = 192, 2x1 = 448, 3x2 ~ 271, 2x2 ~ 172 (shrunk to 192).
+  GuideLayout one=new GuideLayout(192), wide=new GuideLayout(448), big=new GuideLayout(271), square=new GuideLayout(172);
+  check(one.columns==1,"1x1 TV keeps the now/next cell");
+  check(square.width==192&&square.columns==1,"narrow screens use the 192 layout");
+  check(big.columns==2,"3x2 TV shows Now and Next columns");
+  check(wide.columns==3,"2x1 TV shows Now, Next and Later");
+  check(new GuideLayout(286).columns==2,"two columns from 286 wide");
+  for (GuideLayout l: new GuideLayout[]{one,wide,big,square}) {
+   check(Math.abs(l.rowRight()-(l.width-2))<0.01,"rows fill the width");
+   check(l.columnX(l.columns-1)+l.columnW()<=l.rowRight()+0.01,"columns stay inside the row");
+   check(l.backX()+GuideLayout.BACK_W<=l.width,"Back button on screen");
+   check(l.categoriesX()+GuideLayout.CATEGORIES_W<=l.backX(),"Categories button left of Back");
+   check(l.pageX()+l.pageW()<=l.categoriesX(),"page text does not overlap buttons");
+   check(l.categoriesX()>=l.pageX(),"room for the Categories button");
+  }
+  List<String> names=List.of("BBC One","Sky News","Pluto TV Movies","Nick Jr. Pluto TV","NFL Channel","Kanali 7","Homicide Hunter","RAI 1");
+  List<String> groups=List.of("UK","News","Pluto TV","Pluto TV","Pluto TV","Albania","Pluto TV","Italy");
+  List<String> cats=List.of("","","","","","","","");
+  List<Boolean> pluto=List.of(false,false,true,true,true,false,true,false);
+  var out=ChannelCategories.build(names,groups,cats,pluto,"UK",List.of());
+  Map<String,int[]> by=new LinkedHashMap<>(); for (var c: out) by.put(c.name(),c.indices());
+  List<String> order=new ArrayList<>(by.keySet());
+  check(order.get(0).equals("All channels")&&by.get("All channels").length==8,"All channels first");
+  check(Arrays.equals(by.get("News"),new int[]{1}),"News from name and group");
+  check(Arrays.equals(by.get("Movies"),new int[]{2}),"Movies");
+  check(Arrays.equals(by.get("Kids"),new int[]{3}),"Kids");
+  check(Arrays.equals(by.get("Sport"),new int[]{4}),"Sport");
+  check(!by.containsKey("Reality & Lifestyle"),"whole words only: Homicide is not Home");
+  check(Arrays.equals(by.get("Pluto TV"),new int[]{2,3,4,6}),"Pluto TV category");
+  check(order.indexOf("UK")<order.indexOf("Albania")&&order.indexOf("Albania")<order.indexOf("Italy"),"UK first, then countries A-Z");
+  check(!order.contains("Comedy"),"empty categories hidden");
+  check(order.indexOf("Pluto TV")>order.indexOf("News"),"genres before sources");
+  var withPlutoCat=ChannelCategories.build(List.of("Channel X"),List.of("Pluto TV"),List.of("Comedy"),List.of(true),"UK",List.of());
+  check(withPlutoCat.stream().anyMatch(c->c.name().equals("Comedy")),"Pluto's own category is used");
+  check(ChannelCategories.build(List.of(),List.of(),List.of(),List.of(),"UK",List.of()).isEmpty(),"no channels, no categories");
+  System.out.println("PASS: guide layout for every TV size; channel categories");
+ }
+}'''
+
+def run_guide_tests(repo):
+    with tempfile.TemporaryDirectory(prefix='tv-guide-') as temporary:
+        root=Path(temporary)
+        package=root/'com/billyke2000s/moviehubtv/client'; package.mkdir(parents=True)
+        for name in ['GuideLayout.java','ChannelCategories.java']:
+            (package/name).write_text((repo/'src/main/java/com/billyke2000s/moviehubtv/client'/name).read_text())
+        (package/'GuideTest.java').write_text(GUIDE_TEST)
+        subprocess.run(['javac','--release','21','-d',str(root/'classes'),*[str(p) for p in root.rglob('*.java')]],check=True)
+        subprocess.run(['java','-cp',str(root/'classes'),'com.billyke2000s.moviehubtv.client.GuideTest'],check=True)
+
 def run_speaker_tests(repo):
     with tempfile.TemporaryDirectory(prefix='tv-speaker-') as temporary:
         root=Path(temporary)
@@ -151,6 +205,7 @@ def run_speaker_tests(repo):
 def main():
     repo=Path(__file__).resolve().parents[1]
     run_speaker_tests(repo)
+    run_guide_tests(repo)
     with tempfile.TemporaryDirectory(prefix='tv-regression-') as temporary:
         root=Path(temporary)
         sources=dict(STUBS)

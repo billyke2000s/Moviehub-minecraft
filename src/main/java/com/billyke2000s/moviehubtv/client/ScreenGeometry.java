@@ -39,9 +39,13 @@ public final class ScreenGeometry {
      * (where the viewer's left is +x); scale is blocks per canvas unit.
      */
     public record Screen(float leftX, float topY, float scale, float width, float height) {
-        /** Offset and scale that fit the fixed-size guide inside this screen, centred. */
+        /**
+         * The guide is GUIDE_HEIGHT tall and fills the screen's width (at least GUIDE_WIDTH): wide TVs get a
+         * wider guide instead of a small one in the middle. Narrower screens shrink a GUIDE_WIDTH guide to fit.
+         */
         public float guideScale() { return Math.min(width / GUIDE_WIDTH, height / GUIDE_HEIGHT); }
-        public float guideX() { return (width - GUIDE_WIDTH * guideScale()) / 2f; }
+        public float guideWidth() { return Math.max(GUIDE_WIDTH, width / guideScale()); }
+        public float guideX() { return (width - guideWidth() * guideScale()) / 2f; }
         public float guideY() { return (height - GUIDE_HEIGHT * guideScale()) / 2f; }
         public float toGuideU(float u) { return (u - guideX()) / guideScale(); }
         public float toGuideV(float v) { return (v - guideY()) / guideScale(); }

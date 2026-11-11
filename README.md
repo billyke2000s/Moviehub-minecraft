@@ -64,9 +64,16 @@ TV walls regroup when their chunks load; there is no new rotation tool or wall-f
 
 - **Right-click the TV** (without the remote) to turn it on or off.
 - Turning it on goes straight to the **TV guide**: channel number and name, what's on now,
-  what's next, and a progress bar.
+  what's next, and a progress bar. The guide fills the whole screen; wide TVs show **Now**,
+  **Next** and (on the 2-wide TV) **Later** in their own columns with start and end times.
+- **Categories** (footer button): All channels, genres (News, Movies, Kids, Sport, Music, Comedy,
+  Crime & Drama, Reality & Lifestyle, Documentaries), Pluto TV, UK, then each Free-TV country.
+  Pick one to show only those channels; channel numbers stay the same. Genres are matched from
+  channel names (and Pluto's category when Pluto provides one), so a few channels may land in the
+  wrong genre or none.
 - **Hold the remote and look at the screen**: a hand cursor appears where you aim.
-  - **Right-click**: press what's under the cursor (pick a channel, ▲ ▼ page buttons, "Back to TV").
+  - **Right-click**: press what's under the cursor (pick a channel or category, ▲ ▼ page buttons,
+    "Categories"/"Channels", "Back to TV").
   - While watching, right-click opens the guide again.
   - **Left-click**: power.
   - **Scroll wheel**: move through the guide one channel at a time.

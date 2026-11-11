@@ -40,7 +40,8 @@ import java.util.zip.GZIPInputStream;
 public final class ChannelRepository {
     private ChannelRepository() {}
 
-    public record Channel(int number, String id, String name, String url) {}
+    /** group: the playlist's group-title ("" if none); category: Pluto's own category ("" if unknown). */
+    public record Channel(int number, String id, String name, String url, String group, String category) {}
     public record Programme(long start, long stop, String title) {}
 
     private static final Duration PLAYLIST_MAX_AGE = Duration.ofHours(6);
@@ -56,6 +57,7 @@ public final class ChannelRepository {
     private static final DateTimeFormatter XMLTV_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss Z");
 
     private static volatile List<Channel> channels = List.of();
+    private static volatile List<ChannelCategories.Category> categories = List.of();
     private static volatile Map<String, Channel> byId = Map.of();
     private static volatile Map<String, List<Programme>> guide = Map.of();
     private static volatile String status = "Tuning in...";
@@ -80,6 +82,8 @@ public final class ChannelRepository {
             .build();
 
     public static List<Channel> channels() { return channels; }
+    /** Guide categories; their indices point into {@link #channels()}. "All channels" is first. */
+    public static List<ChannelCategories.Category> categories() { return categories; }
     public static Channel channel(String id) { return byId.get(id); }
     public static String status() { return status; }
 
@@ -92,6 +96,35 @@ public final class ChannelRepository {
         Thread t = new Thread(ChannelRepository::loadAll, "MovieHubTV-Loader");
         t.setDaemon(true);
         t.start();
+    }
+
+    static List<ChannelCategories.Category> buildCategories(List<Channel> list) {
+        List<String> names = new ArrayList<>(), groups = new ArrayList<>(), plutoCategories = new ArrayList<>();
+        List<Boolean> pluto = new ArrayList<>();
+        for (Channel c : list) {
+            names.add(c.name());
+            groups.add(c.group());
+            plutoCategories.add(c.category());
+            pluto.add(c.url().startsWith("pluto:") || PlutoClient.isPlutoId(c.id())
+                    || c.group().toLowerCase(java.util.Locale.ROOT).contains("pluto"));
+        }
+        return ChannelCategories.build(names, groups, plutoCategories, pluto, PREFERRED_GROUP, List.of());
+    }
+
+    /** Up to {@code count} listings from the one on now (or the next one, if nothing is on). */
+    public static List<Programme> upcoming(String channelId, long nowMillis, int count) {
+        List<Programme> list = guide.get(channelId);
+        if (list == null) {
+            requestCountry(GuideMatch.countryOf(channelId));
+            return List.of();
+        }
+        List<Programme> out = new ArrayList<>(count);
+        for (Programme p : list) {
+            if (p.stop() <= nowMillis) continue;
+            out.add(p);
+            if (out.size() >= count) break;
+        }
+        return out;
     }
 
     /** Returns [now, next] (either may be null). */
@@ -158,6 +191,7 @@ public final class ChannelRepository {
             for (Channel c : list) ids.put(c.id(), c);
             byId = ids;
             channels = List.copyOf(list);
+            categories = buildCategories(list);
             countryGuides = guideUrls;
             requestedCountries.clear();
             status = "";
@@ -318,7 +352,7 @@ public final class ChannelRepository {
         int added = 0;
         for (PlutoClient.PlutoChannel c : PlutoClient.parseChannels(json)) {
             if (seen.add(c.id())) {
-                out.add(new Channel(101 + out.size(), c.id(), c.name(), "pluto:" + c.id()));
+                out.add(new Channel(101 + out.size(), c.id(), c.name(), "pluto:" + c.id(), "Pluto TV", c.category()));
                 added++;
             }
         }
@@ -366,7 +400,7 @@ public final class ChannelRepository {
     }
 
     /** One playlist entry before numbering. */
-    private record Entry(String id, String name, String url, boolean preferred) {}
+    private record Entry(String id, String name, String url, boolean preferred, String group) {}
 
     /**
      * Adds a playlist's channels in order, but with entries in the {@link #PREFERRED_GROUP} group first.
@@ -398,7 +432,7 @@ public final class ChannelRepository {
                 boolean skip = group.startsWith("VOD") || IP_HOST.matcher(line).find()
                         || (skipPluto && PlutoClient.isPlutoId(id))
                         || (geoLocked && !preferred); // locked to another country: won't play here
-                if (!skip) entries.add(new Entry(id, name, line, preferred));
+                if (!skip) entries.add(new Entry(id, name, line, preferred, group));
                 name = null;
                 geoLocked = false;
                 attrs = Map.of();
@@ -407,7 +441,7 @@ public final class ChannelRepository {
         for (int pass = 0; pass < 2; pass++) {
             for (Entry e : entries) {
                 if (e.preferred() != (pass == 0)) continue;
-                if (seen.add(e.id())) out.add(new Channel(101 + out.size(), e.id(), e.name(), e.url()));
+                if (seen.add(e.id())) out.add(new Channel(101 + out.size(), e.id(), e.name(), e.url(), e.group(), ""));
             }
         }
     }

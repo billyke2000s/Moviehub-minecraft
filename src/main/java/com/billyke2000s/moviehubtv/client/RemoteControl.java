@@ -152,9 +152,12 @@ public final class RemoteControl {
             return;
         }
         ScreenGeometry.Screen screen = ScreenGeometry.screen(layout.width(), layout.height());
-        GuideRenderer.Hit hit = GuideRenderer.hit(p.pos(), tv, screen.toGuideU(p.u()), screen.toGuideV(p.v()));
+        GuideRenderer.Hit hit = GuideRenderer.hit(p.pos(), tv, new GuideLayout(screen.guideWidth()),
+                screen.toGuideU(p.u()), screen.toGuideV(p.v()));
         switch (hit.target()) {
             case ROW -> send(p.pos(), TvBlockEntity.ACTION_TUNE, ChannelRepository.channels().get(hit.channelIndex()).id());
+            case CATEGORY -> GuideRenderer.chooseCategory(p.pos(), hit.channelIndex());
+            case CATEGORIES -> GuideRenderer.toggleCategories(p.pos());
             case UP -> GuideRenderer.scrollBy(p.pos(), tv, -GuideRenderer.ROWS);
             case DOWN -> GuideRenderer.scrollBy(p.pos(), tv, GuideRenderer.ROWS);
             case BACK -> send(p.pos(), TvBlockEntity.ACTION_CLOSE_GUIDE, "");

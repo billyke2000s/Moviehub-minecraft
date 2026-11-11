@@ -68,7 +68,7 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
     /** The guide has a fixed layout; on bigger screens it is scaled up and centred. */
     private static void drawGuide(Canvas c, BlockPos pos, TvBlockEntity tv, ScreenGeometry.Screen screen,
                                   RemoteControl.Pointer pointer) {
-        if (screen.width() != ScreenGeometry.GUIDE_WIDTH || screen.height() != ScreenGeometry.GUIDE_HEIGHT) {
+        if (screen.guideX() > 0.01f || screen.guideY() > 0.01f) {
             c.rect(0, 0, screen.width(), screen.height(), 0, BLACK);
         }
         RemoteControl.Pointer guidePointer = pointer == null ? null
@@ -76,7 +76,7 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         c.pose.pushPose();
         c.pose.translate(screen.guideX(), screen.guideY(), 0);
         c.pose.scale(screen.guideScale(), screen.guideScale(), 1f);
-        GuideRenderer.draw(c, pos, tv, guidePointer);
+        GuideRenderer.draw(c, pos, tv, new GuideLayout(screen.guideWidth()), guidePointer);
         c.pose.popPose();
     }
 
