@@ -1,5 +1,33 @@
 # Status
 
+## 0.10.0 — real MovieHub free services and TMDB posters
+
+- Corrects 0.9.0's scope error: Movies / Shows / Anime now browse TMDB through the host's key,
+  with poster paths and a client texture loader. No silent substitution with Pluto's catalogue.
+- Selecting a film searches Android MovieHub's actual free-provider runtime. Shows open TMDB
+  seasons and episodes before searching. Results appear incrementally with website/quality names
+  and tune via server-issued IDs. The same blue menu and existing video popup remain.
+- The jar bundles the unmodified Python provider and host-resolver sources from MovieHub commit
+  08343545afd7b535f8c9112f818ad60ee4432bd4, including the same 74 active website groups and their
+  disabled/retired-site policy. This is actual provider-code reuse, not a new substitute source list.
+- Host needs Python 3.10+. Portable requests/six dependencies are bundled in a private
+  engine directory, not system Python. Players need neither Python nor a TMDB key. Missing key,
+  Python, no-match and provider failures are reported in the menu.
+- A client-local relay carries source headers, rewrites HLS links and uses MovieHub's PNG-segment
+  decoder. Videos download on players' connections. TMDB and source discovery run on the server.
+- Source URLs/headers are ephemeral live TV updates, not saved in world NBT. After a host restart,
+  reselect the film/episode; expiring links may also need a new source search. Some remote services
+  can fail or return no links. No claim that every website/title works, or of in-game verification.
+- Verified: full build; all 144 upstream resolver tests and two worker bridge tests; bundled-source
+  hashes/licences; clean extracted-worker startup using only bundled dependencies; production Java
+  host extraction/Python startup and all 74 service groups; TMDB poster DTO and server-issued source
+  selection; 17 PNG checks; HLS key/segment and DASH-template transport fixtures; existing TV tests.
+- A live GitHub-runner search for Night of the Living Dead (1968), through all 69 movie-capable
+  service groups, returned 15 media-validated links from nine websites. Some
+  services returned HTTP failures, timeouts or no match. This is resolver/media probing, not
+  in-game rendering, VLC playback, audio verification or a live test using the owner's TMDB key.
+- Protocol tv-0.10.0 on server and clients.
+
 ## 0.9.0 — free Movies / Shows / Anime tabs
 
 - Existing on-TV blue guide, channel categories, remote cursor and player information banner retained.

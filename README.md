@@ -4,7 +4,7 @@ Live TV from [MovieHub](https://github.com/billyke2000s/moviehub) inside Minecra
 A TV block shows a Sky-style TV guide the moment you turn it on, and a Wii-style
 remote lets you point at the screen with a hand cursor and pick a channel.
 
-**Minecraft Java 1.21.1 · NeoForge · client and singleplayer.** Bedrock is not supported.
+**Minecraft Java 1.21.1 · NeoForge · client and server.** Bedrock is not supported.
 
 ## Install
 
@@ -62,24 +62,26 @@ TV walls regroup when their chunks load; there is no new rotation tool or wall-f
 
 ## Using it
 
-- The existing top bar now has **Live TV | Movies | Shows | Anime**. Live TV keeps the guide and
-  categories below it. The other tabs show free Pluto on-demand titles available in your region;
-  pick a show to list its episodes, or pick a film/episode to play it. Anime is limited to titles
-  Pluto identifies as anime. These tabs need no subscription, provider account or TMDB key.
-- **Search** in a movie/show/anime tab filters the free catalogue by title. Clear the search to show
-  all titles again. The player keeps its existing blue popup: aim the remote to show **-10s**, **Play /
-  Pause**, **+10s**, and **Guide**. On-demand pause/seek is shared TV state; live channels retain their
-  existing controls. Provider ad breaks and regional availability still apply.
-- Optional **TMDB ID lookup**: on the machine hosting the world, set `tmdbKey = "..."` in
-  `config/moviehubtv-common.toml` to a TMDB API key or API Read Access Token, then restart the host.
-  Players do not enter a key and never receive it. In Search, enter `tmdb:movie:550` or
-  `tmdb:tv:1399`. The title must also exist in your free regional catalogue to play; a TMDB ID alone
-  does not supply video. This product uses the TMDB API but is not endorsed or certified by TMDB.
-- **Extra free channels**: Android MovieHub's public iptv-org list now loads by default alongside
-  the existing sources (`movieHubFreeChannels = true` in the client config). For a public M3U export
-  of your own free lineup, the host can set `channelPlaylists = ["https://..."]` in
-  `config/moviehubtv-common.toml`; every client loads it. Those playlist URLs are shared with players.
-  This does not port all Android provider adapters; see STATUS.md for the exact limits.
+- **Live TV | Movies | Shows | Anime** retain the existing blue on-TV menu and player popup.
+  The three catalogue tabs browse TMDB with posters. Shows open seasons and episodes; picking a
+  film or episode searches the same free website services as Android MovieHub and lists sources
+  as they arrive. Pick a source to play it. Search accepts a title or `tmdb:movie:550` / `tmdb:tv:1399`.
+- Set `tmdbKey` in the host's `config/moviehubtv-common.toml` to your TMDB API key or Read Access
+  Token, then restart the host. The key and TMDB requests stay server-side. Players fetch poster
+  images from TMDB's image CDN and video streams on their own connection.
+- The host needs **Python 3.10+**. The jar contains the actual MovieHub provider runtime and its portable dependencies;
+  it detects python3 or python, or uses pythonCommand from the common config. On first source
+  search, its bundled requests/six packages extract into config/moviehubtv-engine-0.10.0/packages.
+  This runs off the game thread and opens no public server port. Players need no Python install.
+- Source searching can continue for several minutes; choose a returned source immediately without
+  waiting for every website. Provider names, quality and failures come from the real resolver.
+  Websites can be offline or have no matching video. TMDB supplies metadata, not the movie itself.
+- Aim the remote to use the existing player's **-10s | Play/Pause | +10s | Guide** popup. After a
+  server restart or an expired link, select the title again to obtain fresh source URLs.
+- Live TV keeps its existing channels, guide and categories. Its public extra playlists remain
+  available through channelPlaylists on the host and movieHubFreeChannels on the client.
+- This product uses the TMDB API but is not endorsed or certified by TMDB. See NOTICE.md for
+  the bundled runtime licences and corresponding source.
 
 - **Right-click the TV** (without the remote) to turn it on or off.
 - Turning it on goes straight to the **TV guide**: channel number and name, what's on now,
@@ -132,3 +134,14 @@ stable release tagged `v<mod_version>`; bump `mod_version` to release a new vers
 
 See [STATUS.md](STATUS.md).
 
+
+For a local source build, check out billyke2000s/moviehub at commit 08343545afd7b535f8c9112f818ad60ee4432bd4
+in `upstream-moviehub`. Collect its portable packages before running Gradle:
+
+```sh
+python3 -m pip install --only-binary=:all: --platform any --no-compile --target build/engine-packages requests==2.32.5 six==1.17.0
+./gradlew build
+```
+
+CI performs these steps automatically. The server needs Python 3.10+, but no pip setup or additional
+provider download: the published jar already includes the runtime, portable packages and licences.

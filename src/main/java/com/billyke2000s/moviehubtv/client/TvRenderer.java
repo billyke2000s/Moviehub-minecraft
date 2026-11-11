@@ -95,7 +95,9 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
             float ph = vh * scale;
             c.image(session.texture, (w - pw) / 2f, (h - ph) / 2f, pw, ph, 0.5f, 0, 0, 1, 1, WHITE);
         } else {
-            c.textCentered(statusText(channel, session), w / 2f, h / 2f - 4, 1, 0.8f, SUB);
+            String status = channel != null && channel.url().startsWith("moviehub-vod:") && tv.mediaSource().isEmpty()
+                    ? "Source expired - choose the title again" : statusText(channel, session);
+            c.textCentered(c.fit(status, w - 10, 0.8f), w / 2f, h / 2f - 4, 1, 0.8f, SUB);
         }
 
         boolean recentlyTuned = session != null && System.currentTimeMillis() - session.tunedAt < BANNER_MS;

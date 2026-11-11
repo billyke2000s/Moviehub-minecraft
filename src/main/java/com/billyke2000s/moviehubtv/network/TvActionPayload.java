@@ -31,7 +31,7 @@ public record TvActionPayload(BlockPos pos, int action, String channelId) implem
     }
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("tv-0.9.0").playToServer(TYPE, STREAM_CODEC, TvActionPayload::handle);
+        event.registrar("tv-0.10.0").playToServer(TYPE, STREAM_CODEC, TvActionPayload::handle);
     }
 
     private static void handle(TvActionPayload payload, IPayloadContext context) {

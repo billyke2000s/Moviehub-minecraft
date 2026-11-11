@@ -30,6 +30,7 @@ final class TvVideoManager {
         long tunedAt;
         boolean registered;
         int mediaRevision = -1;
+        LocalMediaRelay relay;
 
         Session(BlockPos pos) {
             this.pos = pos;
@@ -42,6 +43,7 @@ final class TvVideoManager {
         }
 
         void release() {
+            if (relay != null) { relay.close(); relay = null; }
             if (player != null) {
                 try {
                     player.release();
@@ -82,6 +84,18 @@ final class TvVideoManager {
             }
             // Pluto links need a current session token; while it is being fetched, try again next frame.
             String url = channel.url();
+            if (url.startsWith("moviehub-vod:")) {
+                var level = Minecraft.getInstance().level;
+                if (level == null || !(level.getBlockEntity(pos) instanceof TvBlockEntity tv) || tv.mediaSource().isEmpty()) return s;
+                try {
+                    if (s.relay != null) s.relay.close();
+                    s.relay = new LocalMediaRelay(com.google.gson.JsonParser.parseString(tv.mediaSource()).getAsJsonObject());
+                    url = s.relay.url();
+                } catch (Exception e) {
+                    MovieHubTV.LOGGER.warn("Could not start local MovieHub media transport ({})", e.getClass().getSimpleName());
+                    return s;
+                }
+            } else if (s.relay != null) { s.relay.close(); s.relay = null; }
             if (url.startsWith("pluto-vod:")) {
                 url = PlutoClient.streamUrl(url.substring("pluto-vod:".length()), true);
                 if (url == null) return s;

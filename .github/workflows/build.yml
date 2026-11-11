@@ -12,6 +12,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout the exact MovieHub free-provider runtime
+        uses: actions/checkout@v4
+        with:
+          repository: billyke2000s/moviehub
+          ref: 08343545afd7b535f8c9112f818ad60ee4432bd4
+          path: upstream-moviehub
+          sparse-checkout: |
+            android-tv-launcher/app/src/main/python
+            android-tv-launcher/app/src/main/assets/licenses/vod
+            android-tv-launcher/tests
+
+      - name: Check the real MovieHub resolver and bridge
+        run: |
+          python3 -m pip install requests==2.32.5 six==1.17.0
+          python3 -m pip install --only-binary=:all: --platform any --no-compile --target build/engine-packages requests==2.32.5 six==1.17.0
+          python3 upstream-moviehub/android-tv-launcher/tests/test_free_vod.py
+          python3 tests/test_moviehub_worker.py
+
       - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
@@ -42,9 +60,13 @@ jobs:
           path: build/libs/*.jar
           if-no-files-found: error
 
-      - name: Free on-demand provider smoke check (runner region)
+      - name: Verify bundled MovieHub engine bytes and notices
+        run: python3 tests/check_engine_bundle.py
+
+      - name: Real MovieHub free services smoke check (runner region)
+        if: github.event_name != 'pull_request'
         continue-on-error: true
-        run: ./gradlew freeVodProbe
+        run: python3 tests/probe_moviehub_engine.py
 
       - name: Publish latest jar as a release
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
