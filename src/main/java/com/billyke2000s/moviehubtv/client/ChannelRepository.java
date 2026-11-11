@@ -48,6 +48,8 @@ public final class ChannelRepository {
     private static final Pattern ATTR = Pattern.compile("([a-zA-Z-]+)=\"([^\"]*)\"");
     /** Hosts that are bare IP addresses are third-party re-streams, not broadcasters; they are skipped. */
     private static final Pattern IP_HOST = Pattern.compile("^https?://\\d{1,3}(\\.\\d{1,3}){3}(:\\d+)?/");
+    /** Free-TV marks channels that only play in their own country with this symbol. */
+    private static final String GEO_LOCKED = "\u24BC";
     /** Country groups listed first, so local channels get the lowest numbers. */
     private static final String PREFERRED_GROUP = "UK";
     private static final DateTimeFormatter XMLTV_TIME = DateTimeFormatter.ofPattern("yyyyMMddHHmmss Z");
@@ -225,21 +227,27 @@ public final class ChannelRepository {
     static void parseM3u(String text, List<Channel> out, Set<String> seen, boolean skipPluto) {
         List<Entry> entries = new ArrayList<>();
         String name = null;
+        boolean geoLocked = false;
         Map<String, String> attrs = Map.of();
         for (String raw : text.split("\\R")) {
             String line = raw.trim();
             if (line.isEmpty()) continue;
             if (line.startsWith("#EXTINF")) {
                 int comma = line.lastIndexOf(',');
-                name = cleanName(comma >= 0 ? line.substring(comma + 1).trim() : "Channel");
+                String rawName = comma >= 0 ? line.substring(comma + 1).trim() : "Channel";
+                geoLocked = rawName.contains(GEO_LOCKED);
+                name = cleanName(rawName);
                 attrs = attributes(comma >= 0 ? line.substring(0, comma) : line);
             } else if (!line.startsWith("#") && name != null) {
                 String group = attrs.getOrDefault("group-title", "");
                 String id = channelIdFor(line, name, attrs.get("tvg-id"));
+                boolean preferred = PREFERRED_GROUP.equalsIgnoreCase(group);
                 boolean skip = group.startsWith("VOD") || IP_HOST.matcher(line).find()
-                        || (skipPluto && PlutoClient.isPlutoId(id));
-                if (!skip) entries.add(new Entry(id, name, line, PREFERRED_GROUP.equalsIgnoreCase(group)));
+                        || (skipPluto && PlutoClient.isPlutoId(id))
+                        || (geoLocked && !preferred); // locked to another country: won't play here
+                if (!skip) entries.add(new Entry(id, name, line, preferred));
                 name = null;
+                geoLocked = false;
                 attrs = Map.of();
             }
         }

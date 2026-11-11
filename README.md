@@ -53,8 +53,9 @@ part of the screen; the guide is scaled up to fit.
 - Other channels: every channel in Moviehub-freelinks
   [`output/theloop.m3u`](https://github.com/billyke2000s/Moviehub-freelinks/blob/main/output/theloop.m3u),
   numbered from 101, then [Free-TV](https://github.com/Free-TV/IPTV) (free channels streamed by the
-  broadcasters themselves, e.g. BBC, STV, S4C), UK channels first. Free-TV's on-demand groups and
-  streams served from bare IP addresses (third-party re-streams) are skipped.
+  broadcasters themselves, e.g. BBC, STV, S4C), UK channels first. Free-TV's on-demand groups,
+  streams served from bare IP addresses (third-party re-streams) and channels Free-TV marks as
+  locked to another country (Ⓖ, except UK ones) are skipped.
 - Guide: [Moviehub-epg `epg.xml.gz`](https://github.com/billyke2000s/Moviehub-epg).
   It is about 50 MB, so it downloads in the background (at most every 6 hours) and is
   cached in `.minecraft/moviehubtv-cache`. Only listings for the playlist's channels are kept.
