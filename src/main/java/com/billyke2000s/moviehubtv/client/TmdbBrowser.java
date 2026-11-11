@@ -11,17 +11,22 @@ final class TmdbBrowser {
     String route = "", query = "", status = "";
     boolean loading;
     boolean sourcesFound;
+    String browseState = "";
     private final Deque<Frame> history = new ArrayDeque<>();
     private record Frame(List<JsonObject> items, int scroll, int page, int pages, int id, int season,
                          String route, String query, String status) {}
     void root(int tab) {
         cancelSearch();
         history.clear();
-        request(tab == 1 ? "movies" : tab == 2 ? "shows" : "anime", 0, 0, 1, "", false);
+        browseState = new com.billyke2000s.moviehubtv.catalogue.BrowseCatalogue.Filters(
+                tab == 1 ? "movies" : tab == 2 ? "shows" : "anime", "popular", 0, 0, 0, "", "", "GB", "all").json().toString();
+        request("browse-menu", 0, 0, 1, browseState, false);
     }
+    void categories() { cancelSearch(); request("browse-menu", 0, 0, 1, browseState, true); }
     private void request(String next, int selected, int seasonNumber, int pageNumber, String search, boolean remember) {
         if (remember) history.push(new Frame(List.copyOf(items), scroll, page, pages, id, season, route, query, status));
         route = next; id = selected; season = seasonNumber; page = pageNumber; query = search;
+        if (next.startsWith("browse-") || next.startsWith("facet-")) browseState = search;
         items = new ArrayList<>(); scroll = 0; pages = 1; loading = true; sourcesFound = false;
         status = next.equals("resolve") ? "Starting MovieHub's free-source search..." : "Loading TMDB...";
         int version = ++generation;
@@ -50,7 +55,8 @@ final class TmdbBrowser {
                 items = new ArrayList<>();
                 for (JsonElement e : data.getAsJsonArray("items")) if (e.isJsonObject()) items.add(e.getAsJsonObject());
                 pages = integer(data, "pages", 1);
-                status = items.isEmpty() ? "No TMDB results" : "TMDB - page " + page + " / " + pages;
+                page = integer(data, "page", page);
+                status = items.isEmpty() ? "No TMDB results - change filters or region" : "TMDB - page " + page + " / " + pages;
             }
             if (!loading && route.equals("resolve") && !sourcesFound && !data.has("error"))
                 status = "No playable sources returned by MovieHub's free services";
@@ -60,6 +66,8 @@ final class TmdbBrowser {
         if (index < 0 || index >= items.size()) return null;
         JsonObject item = items.get(index);
         String kind = text(item, "kind");
+        if (kind.equals("search")) return "moviehub-search";
+        if (kind.equals("browse")) { request(text(item, "next"), 0, 0, 1, text(item, "query"), true); return null; }
         if (kind.equals("provider")) { status = text(item, "title") + ": " + text(item, "subtitle"); return null; }
         int selected = integer(item, "id", 0);
         if (kind.equals("source")) return text(item, "play");
@@ -75,6 +83,7 @@ final class TmdbBrowser {
         Frame f = history.pop(); generation++;
         items = new ArrayList<>(f.items); scroll = f.scroll; page = f.page; pages = f.pages;
         id = f.id; season = f.season; route = f.route; query = f.query; status = f.status; loading = false;
+        if (route.startsWith("browse-") || route.startsWith("facet-")) browseState = query;
         return true;
     }
     boolean canBack() { return !history.isEmpty(); }

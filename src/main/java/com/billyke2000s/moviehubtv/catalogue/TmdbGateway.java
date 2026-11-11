@@ -20,9 +20,15 @@ public final class TmdbGateway {
     public static void clear() { CACHE.clear(); }
 
     static JsonObject get(String path, String key) throws Exception {
+        return getJson(path, key).getAsJsonObject();
+    }
+    static JsonArray getArray(String path, String key) throws Exception {
+        return getJson(path, key).getAsJsonArray();
+    }
+    static JsonElement getJson(String path, String key) throws Exception {
         Cached cached = CACHE.get(path);
         if (cached != null && System.currentTimeMillis() - cached.at < 3600000)
-            return JsonParser.parseString(cached.json).getAsJsonObject();
+            return JsonParser.parseString(cached.json);
         String url = "https://api.themoviedb.org/3/" + path + (path.contains("?") ? "&" : "?") + "language=en-GB";
         var request = HttpRequest.newBuilder().timeout(Duration.ofSeconds(20));
         if (key.matches("[a-fA-F0-9]{32}")) url += "&api_key=" + URLEncoder.encode(key, StandardCharsets.UTF_8);
@@ -33,13 +39,15 @@ public final class TmdbGateway {
             byte[] bytes = in.readNBytes(1048577);
             if (bytes.length > 1048576) throw new IllegalStateException("TMDB response limit");
             String json = new String(bytes, StandardCharsets.UTF_8);
-            JsonObject data = JsonParser.parseString(json).getAsJsonObject();
+            JsonElement data = JsonParser.parseString(json);
             CACHE.put(path, new Cached(System.currentTimeMillis(), json));
             return data;
         }
     }
 
     public static JsonObject catalogue(CataloguePayload.Request q, String key) throws Exception {
+        if (q.route().startsWith("browse-") || q.route().startsWith("facet-"))
+            return BrowseCatalogue.catalogue(q.route(), q.query(), q.page(), key);
         int page = Math.max(1, Math.min(500, q.page()));
         JsonObject out = new JsonObject();
         JsonArray items = new JsonArray();

@@ -108,6 +108,7 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
     }
 
     private static String statusText(ChannelRepository.Channel channel, TvVideoManager.Session session) {
+        if (session != null && !session.failure.isEmpty()) return session.failure;
         if (channel == null) {
             return ChannelRepository.channels().isEmpty() ? "Tuning in..." : "Channel not available";
         }

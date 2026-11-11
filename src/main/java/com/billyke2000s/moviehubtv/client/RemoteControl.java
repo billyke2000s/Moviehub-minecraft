@@ -167,7 +167,7 @@ public final class RemoteControl {
             case ROW -> send(p.pos(), TvBlockEntity.ACTION_TUNE, ChannelRepository.channels().get(hit.channelIndex()).id());
             case CATEGORY -> GuideRenderer.chooseCategory(p.pos(), hit.channelIndex());
             case CATEGORIES -> {
-                if (GuideRenderer.isVod(p.pos())) Minecraft.getInstance().setScreen(new CatalogueSearchScreen(p.pos()));
+                if (GuideRenderer.isVod(p.pos())) GuideRenderer.vodCategories(p.pos());
                 else GuideRenderer.toggleCategories(p.pos());
             }
             case UP -> GuideRenderer.scrollBy(p.pos(), tv, -GuideRenderer.ROWS);

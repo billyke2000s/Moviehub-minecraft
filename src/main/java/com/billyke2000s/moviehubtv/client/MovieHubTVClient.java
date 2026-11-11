@@ -23,6 +23,11 @@ public final class MovieHubTVClient {
         com.billyke2000s.moviehubtv.block.SpeakerBlockEntity.clientLoaded = SpeakerAudio::loaded;
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         modBus.addListener(MovieHubTVClient::registerRenderers);
+        modBus.addListener((net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent event) ->
+                event.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener) manager -> {
+                    TvVideoManager.releaseAll();
+                    PosterCache.clear();
+                }));
 
         IEventBus game = NeoForge.EVENT_BUS;
         game.addListener(RemoteControl::onInteraction);

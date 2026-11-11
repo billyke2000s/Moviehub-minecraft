@@ -70,6 +70,7 @@ final class GuideRenderer {
 
     static void clear() { STATES.clear(); }
     static boolean isVod(BlockPos pos) { return state(pos).tab != 0; }
+    static void vodCategories(BlockPos pos) { state(pos).browser.categories(); }
     static void chooseTab(BlockPos pos, int tab) {
         State s = state(pos);
         if (tab < 0 || tab > 3) return;
@@ -89,7 +90,11 @@ final class GuideRenderer {
     }
     /** Returns a playable free locator, or opens the selected show's episodes. */
     static String chooseVod(BlockPos pos, int index) {
-        return state(pos).browser.activate(index);
+        String result = state(pos).browser.activate(index);
+        if ("moviehub-search".equals(result)) {
+            net.minecraft.client.Minecraft.getInstance().setScreen(new CatalogueSearchScreen(pos)); return null;
+        }
+        return result;
     }
 
     private static State state(BlockPos pos) {
@@ -245,7 +250,10 @@ final class GuideRenderer {
             boolean over = hover.target() == Target.VOD && hover.channelIndex() == index;
             c.panel(GuideLayout.CH_X, y, w, TmdbBrowser.HEIGHT, 0.5f, over ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
             var poster = PosterCache.get(TmdbBrowser.text(item, "poster"));
-            if (poster != null) c.image(poster, 4, y + 1, 18, 27, 1, 0, 0, 1, 1, WHITE);
+            if (poster != null) {
+                boolean logo = TmdbBrowser.text(item, "kind").equals("browse");
+                c.image(poster, 4, y + (logo ? 5 : 1), 18, logo ? 18 : 27, 1, 0, 0, 1, 1, WHITE);
+            }
             else c.rect(4, y + 1, 18, 27, 1, BAR_DARK);
             c.text(c.fit(TmdbBrowser.text(item, "title"), w - 52, 0.75f), 27, y + 3, 1, 0.75f, WHITE);
             c.text(c.fit(TmdbBrowser.text(item, "subtitle"), w - 34, 0.6f), 27, y + 13, 1, 0.6f, GOLD);
@@ -345,7 +353,7 @@ final class GuideRenderer {
             String page = (first + 1) + "-" + last + " of " + total;
             c.text(c.fit(page, l.pageW(), 0.7f), l.pageX(), FOOTER_Y + 5, 1, 0.7f, SUB);
         }
-        button(c, l.categoriesX(), GuideLayout.CATEGORIES_W, s.tab != 0 ? "Search" : s.picking ? "Channels" : "Categories",
+        button(c, l.categoriesX(), GuideLayout.CATEGORIES_W, s.tab != 0 ? "Categories" : s.picking ? "Channels" : "Categories",
                 hover.target() == Target.CATEGORIES, 0.6f);
         if (!tv.channelId().isEmpty() || (s.tab != 0 && s.browser.canBack())) {
             button(c, l.backX(), GuideLayout.BACK_W, s.tab != 0 && s.browser.canBack() ? "Back" : "Back to TV", hover.target() == Target.BACK, 0.6f);

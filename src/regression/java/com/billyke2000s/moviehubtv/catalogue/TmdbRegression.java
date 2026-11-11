@@ -3,7 +3,8 @@ package com.billyke2000s.moviehubtv.catalogue;
 import com.google.gson.JsonParser;
 
 public final class TmdbRegression {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
+        BrowseRegression.run();
         var raw = JsonParser.parseString("""
                 {"id":10331,"title":"Night of the Living Dead","release_date":"1968-10-04",
                  "poster_path":"/tmdbPoster.jpg","overview":"Fixture synopsis"}

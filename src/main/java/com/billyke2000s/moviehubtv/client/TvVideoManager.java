@@ -31,6 +31,10 @@ final class TvVideoManager {
         boolean registered;
         int mediaRevision = -1;
         LocalMediaRelay relay;
+        int starts;
+        long retryAt, frameProbeAt;
+        boolean uploadedFrame;
+        String failure = "";
 
         Session(BlockPos pos) {
             this.pos = pos;
@@ -38,11 +42,17 @@ final class TvVideoManager {
         }
 
         boolean hasPicture() {
-            return player != null && player.texture() > 0 && player.width() > 0 && player.height() > 0
-                    && (player.isPlaying() || player.isPaused());
+            if (player == null || player.width() <= 1 || player.height() <= 1) return false;
+            long now = System.currentTimeMillis();
+            if (now >= frameProbeAt) {
+                uploadedFrame = VideoRenderState.hasFrame(player.texture());
+                frameProbeAt = now + 250;
+            }
+            // Keep the last decoded image during buffering instead of turning the TV black.
+            return uploadedFrame && !player.isBroken();
         }
 
-        void release() {
+        void releasePlayback() {
             if (relay != null) { relay.close(); relay = null; }
             if (player != null) {
                 try {
@@ -52,6 +62,12 @@ final class TvVideoManager {
                 }
                 player = null;
             }
+            uploadedFrame = false;
+            frameProbeAt = 0;
+        }
+
+        void release() {
+            releasePlayback();
             if (registered) {
                 Minecraft.getInstance().getTextureManager().release(texture);
                 registered = false;
@@ -73,7 +89,13 @@ final class TvVideoManager {
     /** Called while rendering a TV that should be playing channelId. Returns null if video is unavailable. */
     static Session play(BlockPos pos, ChannelRepository.Channel channel) {
         Session s = SESSIONS.computeIfAbsent(pos.immutable(), Session::new);
-        if (!channel.id().equals(s.channelId) || s.player == null) {
+        if (!channel.id().equals(s.channelId)) {
+            s.releasePlayback();
+            s.channelId = channel.id();
+            s.starts = 0; s.retryAt = 0; s.failure = "";
+        }
+        if (s.player == null) {
+            if (!VideoRecovery.mayStart(s.starts, System.currentTimeMillis(), s.retryAt)) return s;
             if (!videoAvailable()) {
                 if (!warnedNoVlc) {
                     MovieHubTV.LOGGER.error("WATERMeDIA could not load VLC, so the TV cannot play video");
@@ -92,6 +114,9 @@ final class TvVideoManager {
                     s.relay = new LocalMediaRelay(com.google.gson.JsonParser.parseString(tv.mediaSource()).getAsJsonObject());
                     url = s.relay.url();
                 } catch (Exception e) {
+                    s.starts++;
+                    s.retryAt = System.currentTimeMillis() + 3000;
+                    s.failure = "Video transport failed on this PC - choose another source";
                     MovieHubTV.LOGGER.warn("Could not start local MovieHub media transport ({})", e.getClass().getSimpleName());
                     return s;
                 }
@@ -104,11 +129,14 @@ final class TvVideoManager {
                 url = PlutoClient.streamUrl(channel.id());
                 if (url == null) return s;
             }
-            if (s.player != null) s.player.release();
-            s.player = new VideoPlayer(Minecraft.getInstance());
+            try {
+            s.starts++;
+            s.player = VideoRenderState.call(() -> new VideoPlayer(task ->
+                    Minecraft.getInstance().execute(() -> VideoRenderState.run(task))));
             s.channelId = channel.id();
             s.tunedAt = System.currentTimeMillis();
             s.mediaRevision = -1;
+            s.failure = "";
             final VideoPlayer player = s.player;
             if (!s.registered) {
                 Minecraft.getInstance().getTextureManager().register(s.texture,
@@ -117,6 +145,12 @@ final class TvVideoManager {
             }
             player.setVolume(0);
             player.start(URI.create(url));
+            } catch (Exception e) {
+                s.releasePlayback();
+                s.retryAt = System.currentTimeMillis() + 3000;
+                s.failure = "Video initialisation failed on this PC - choose another source";
+                MovieHubTV.LOGGER.warn("TV video initialisation failed on this client ({})", e.getClass().getSimpleName());
+            }
         }
         return s;
     }
@@ -157,9 +191,19 @@ final class TvVideoManager {
                 continue;
             }
             if (s.player != null) {
+                boolean picture = s.hasPicture();
+                if (VideoRecovery.failed(System.currentTimeMillis() - s.tunedAt, s.player.isBroken(), s.player.isEnded(), picture)) {
+                    MovieHubTV.LOGGER.warn("TV video has no usable frame on this client; attempt {} of {} (state={}, size={}x{})",
+                            s.starts, VideoRecovery.MAX_STARTS, s.player.getStateName(), s.player.width(), s.player.height());
+                    s.failure = s.starts < VideoRecovery.MAX_STARTS ? "Retrying video on this PC..."
+                            : "Video failed on this PC - choose another source";
+                    s.releasePlayback();
+                    s.retryAt = System.currentTimeMillis() + 3000;
+                    continue;
+                }
                 // Apply controls once after VLC is ready; do not repeatedly seek through ad breaks.
                 if (tv.isOnDemand() && s.mediaRevision != tv.mediaRevision()
-                        && (s.player.isPlaying() || s.player.isPaused())) {
+                        && picture) {
                     long duration = s.player.getDuration();
                     long target = tv.mediaPosition();
                     if (duration > 0) target = Math.min(target, Math.max(0, duration - 1000));
