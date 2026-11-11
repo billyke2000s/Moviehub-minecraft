@@ -8,6 +8,7 @@ import java.util.*;
 public final class BrowseCatalogue {
     private BrowseCatalogue() {}
     interface Source { JsonElement get(String path) throws Exception; }
+    private static final Map<String, String> NAMES = new java.util.concurrent.ConcurrentHashMap<>();
     public record Filters(String section, String mode, int genre, int provider, int year,
                           String country, String language, String region, String access) {
         public static Filters parse(String json) {
@@ -38,8 +39,9 @@ public final class BrowseCatalogue {
     }
     private static JsonObject option(Filters f, String field, Object value, String title) {
         JsonObject state = f.json();
+        boolean selected = state.has(field) && state.get(field).getAsString().equals(value.toString());
         if (value instanceof Number n) state.addProperty(field, n); else state.addProperty(field, value.toString());
-        return row(title, "Select, then Browse titles; filters can be combined", "browse-menu", state);
+        return row(title, selected ? "Selected - choose Browse titles to view results" : "Select, then Browse titles; filters can be combined", "browse-menu", state);
     }
     public static JsonObject catalogue(String route, String query, int page, String key) throws Exception {
         return catalogue(route, query, page, path -> TmdbGateway.getJson(path, key));
@@ -55,9 +57,11 @@ public final class BrowseCatalogue {
             rows.add(row("Top rated", "Highest rated; at least 200 votes", "browse-menu", changed(f, "mode", "top")));
             rows.add(row("Upcoming", "Future releases / new series", "browse-menu", changed(f, "mode", "upcoming")));
             rows.add(row("New releases / airing", "Recent movies and currently airing series", "browse-menu", changed(f, "mode", "recent")));
-            for (String facet : List.of("genres", "providers", "years", "countries", "languages", "regions", "access"))
-                rows.add(row(switch (facet) { case "regions" -> "Provider region"; case "access" -> "Availability type"; default -> Character.toUpperCase(facet.charAt(0)) + facet.substring(1); },
-                        summary(f), "facet-" + facet, f.json()));
+            for (String facet : List.of("genres", "providers", "years", "countries", "languages", "regions", "access")) {
+                JsonObject item = row(switch (facet) { case "regions" -> "Provider region"; case "access" -> "Availability type"; default -> Character.toUpperCase(facet.charAt(0)) + facet.substring(1); }, summary(f), "facet-" + facet, f.json());
+                if (facet.equals("providers")) item.addProperty("overview", "Availability by JustWatch via TMDB");
+                rows.add(item);
+            }
             rows.add(row("Clear filters", "Reset this tab; keep provider region", "browse-menu", new Filters(f.section, "popular", 0, 0, 0, "", "", f.region, "all").json()));
             JsonObject search = new JsonObject(); search.addProperty("kind", "search"); search.addProperty("title", "Search titles / TMDB ID"); search.addProperty("subtitle", "Search all titles in this tab"); rows.add(search);
         } else if (route.equals("facet-years")) {
@@ -75,8 +79,9 @@ public final class BrowseCatalogue {
                 JsonObject data = source.get(providers ? "watch/providers/" + type + "?watch_region=" + f.region : "genre/" + type + "/list").getAsJsonObject();
                 for (JsonElement e : TmdbGateway.array(data, providers ? "results" : "genres")) {
                     JsonObject o = e.getAsJsonObject(); int id = TmdbGateway.integer(o, providers ? "provider_id" : "id", 0);
+                    if (NAMES.size() < 10000) NAMES.put(field + id, TmdbGateway.text(o, providers ? "provider_name" : "name"));
                     JsonObject item = option(f, field, id, TmdbGateway.text(o, providers ? "provider_name" : "name"));
-                    if (providers) { item.addProperty("poster", TmdbGateway.text(o, "logo_path")); item.addProperty("subtitle", "Available in " + f.region + " - select to filter titles"); }
+                    if (providers) { item.addProperty("poster", TmdbGateway.text(o, "logo_path")); item.addProperty("overview", "Availability by JustWatch via TMDB"); }
                     all.putIfAbsent(id, item);
                 }
             }
@@ -103,8 +108,8 @@ public final class BrowseCatalogue {
     }
     static JsonObject changed(Filters f, String field, String value) { JsonObject o = f.json(); o.addProperty(field, value); return o; }
     static String summary(Filters f) {
-        return f.mode + " | " + f.region + (f.provider > 0 ? " | provider selected" : "")
-                + (f.genre > 0 ? " | genre selected" : "") + (f.year > 0 ? " | " + f.year : "")
+        return f.mode + " | " + f.region + (f.provider > 0 ? " | " + NAMES.getOrDefault("provider" + f.provider, "provider selected") : "")
+                + (f.genre > 0 ? " | " + NAMES.getOrDefault("genre" + f.genre, "genre selected") : "") + (f.year > 0 ? " | " + f.year : "")
                 + (f.country.isEmpty() ? "" : " | " + f.country) + (f.language.isEmpty() ? "" : " | " + f.language)
                 + (f.access.equals("all") ? "" : " | " + f.access);
     }

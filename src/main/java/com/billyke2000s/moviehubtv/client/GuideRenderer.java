@@ -250,7 +250,10 @@ final class GuideRenderer {
             boolean over = hover.target() == Target.VOD && hover.channelIndex() == index;
             c.panel(GuideLayout.CH_X, y, w, TmdbBrowser.HEIGHT, 0.5f, over ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
             var poster = PosterCache.get(TmdbBrowser.text(item, "poster"));
-            if (poster != null) c.image(poster, 4, y + 1, 18, 27, 1, 0, 0, 1, 1, WHITE);
+            if (poster != null) {
+                boolean logo = TmdbBrowser.text(item, "kind").equals("browse");
+                c.image(poster, 4, y + (logo ? 5 : 1), 18, logo ? 18 : 27, 1, 0, 0, 1, 1, WHITE);
+            }
             else c.rect(4, y + 1, 18, 27, 1, BAR_DARK);
             c.text(c.fit(TmdbBrowser.text(item, "title"), w - 52, 0.75f), 27, y + 3, 1, 0.75f, WHITE);
             c.text(c.fit(TmdbBrowser.text(item, "subtitle"), w - 34, 0.6f), 27, y + 13, 1, 0.6f, GOLD);
