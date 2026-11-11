@@ -118,7 +118,8 @@ final class TvVideoManager {
             boolean keep = dist < 64
                     && mc.level.isLoaded(s.pos)
                     && mc.level.getBlockEntity(s.pos) instanceof TvBlockEntity tv
-                    && tv.isOn() && tv.channelId().equals(s.channelId);
+                    && tv.isOn() && tv.channelId().equals(s.channelId)
+                    && tv.isWallController(); // TVs joined into a wall play only through the wall's controller
             if (!keep) {
                 s.release();
                 it.remove();

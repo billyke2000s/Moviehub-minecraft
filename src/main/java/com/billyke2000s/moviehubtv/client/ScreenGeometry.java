@@ -1,12 +1,16 @@
 package com.billyke2000s.moviehubtv.client;
 
 import com.billyke2000s.moviehubtv.block.TvBlock;
+import com.billyke2000s.moviehubtv.block.TvBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Where the screen sits on a TV, and conversion between the world and screen canvas units.
@@ -44,23 +48,26 @@ public final class ScreenGeometry {
         public float toGuideV(float v) { return (v - guideY()) / guideScale(); }
     }
 
-    private static final Screen[][] CACHE = new Screen[4][3];
+    private static final Map<Integer, Screen> CACHE = new ConcurrentHashMap<>();
 
     public static Screen screen(int widthBlocks, int heightBlocks) {
-        Screen s = CACHE[widthBlocks][heightBlocks];
-        if (s == null) {
+        return CACHE.computeIfAbsent(widthBlocks * 100 + heightBlocks, k -> {
             float screenW = widthBlocks - 2 * INSET_SIDE;
             float screenH = heightBlocks - INSET_TOP - INSET_BOTTOM;
             float scale = screenH / HEIGHT;
-            s = new Screen(1f - INSET_SIDE, heightBlocks - INSET_TOP, scale, screenW / scale, HEIGHT);
-            CACHE[widthBlocks][heightBlocks] = s;
-        }
-        return s;
+            return new Screen(1f - INSET_SIDE, heightBlocks - INSET_TOP, scale, screenW / scale, HEIGHT);
+        });
     }
 
     public static Screen screenFor(BlockState state) {
         if (state.getBlock() instanceof TvBlock tv) return screen(tv.widthBlocks(), tv.heightBlocks());
         return screen(1, 1);
+    }
+
+    /** The screen a TV draws: its wall's size when it is part of a TV wall. */
+    public static Screen screenFor(TvBlockEntity tv) {
+        if (tv.inWall()) return screen(tv.wallWidth(), tv.wallHeight());
+        return screenFor(tv.getBlockState());
     }
 
     /** Moves the pose from controller-block-local space onto the screen canvas (x right, y down, +z towards the viewer). */

@@ -6,6 +6,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -49,6 +50,12 @@ public class TvBlock extends HorizontalDirectionalBlock implements EntityBlock {
     /** The block holding the TV's state (itself for a one-block TV). */
     public BlockPos controllerPos(BlockState state, BlockPos pos) { return pos; }
 
+    /** As above, but also follows a TV wall made of separate TVs to its controller. */
+    public BlockPos controllerPos(BlockGetter level, BlockState state, BlockPos pos) {
+        if (level.getBlockEntity(pos) instanceof TvBlockEntity tv && tv.inWall()) return tv.controllerPos();
+        return controllerPos(state, pos);
+    }
+
     /** The viewer's right-hand direction when looking at a screen that faces {@code facing}. */
     public static Direction rightOf(Direction facing) { return facing.getCounterClockWise(); }
 
@@ -64,9 +71,25 @@ public class TvBlock extends HorizontalDirectionalBlock implements EntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof TvBlockEntity tv) {
+        if (!level.isClientSide && level.getBlockEntity(controllerPos(level, state, pos)) instanceof TvBlockEntity tv) {
             tv.apply(TvBlockEntity.ACTION_POWER, "");
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    /** A TV placed next to others may complete a rectangle: regroup. (Big crafted TVs never join walls.) */
+    @Override
+    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+        super.onPlace(state, level, pos, oldState, movedByPiston);
+        if (!level.isClientSide && !oldState.is(this) && getClass() == TvBlock.class) TvWall.recompute(level, pos);
+    }
+
+    /** Removing a TV splits its wall; regroup what is left. */
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        super.onRemove(state, level, pos, newState, movedByPiston);
+        if (!level.isClientSide && !state.is(newState.getBlock()) && getClass() == TvBlock.class) {
+            TvWall.recomputeAround(level, pos, state.getValue(FACING));
+        }
     }
 }

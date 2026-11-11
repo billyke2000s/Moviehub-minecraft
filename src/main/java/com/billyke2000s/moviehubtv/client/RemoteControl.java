@@ -57,10 +57,9 @@ public final class RemoteControl {
         Direction facing = state.getValue(TvBlock.FACING);
         if (blockHit.getDirection() != facing) return;
         // Any part of a big TV points at its controller block, where the screen is drawn from.
-        BlockPos controller = tvBlock.controllerPos(state, blockHit.getBlockPos());
-        BlockState controllerState = mc.level.getBlockState(controller);
-        if (!(controllerState.getBlock() instanceof TvBlock)) return;
-        float[] uv = ScreenGeometry.toCanvas(controller, facing, blockHit.getLocation(), ScreenGeometry.screenFor(controllerState));
+        BlockPos controller = tvBlock.controllerPos(mc.level, state, blockHit.getBlockPos());
+        if (!(mc.level.getBlockEntity(controller) instanceof TvBlockEntity controllerTv)) return;
+        float[] uv = ScreenGeometry.toCanvas(controller, facing, blockHit.getLocation(), ScreenGeometry.screenFor(controllerTv));
         if (uv == null) return;
         pointer = new Pointer(controller.immutable(), uv[0], uv[1]);
     }
@@ -115,7 +114,7 @@ public final class RemoteControl {
             send(p.pos(), TvBlockEntity.ACTION_OPEN_GUIDE, "");
             return;
         }
-        ScreenGeometry.Screen screen = ScreenGeometry.screenFor(tv.getBlockState());
+        ScreenGeometry.Screen screen = ScreenGeometry.screenFor(tv);
         GuideRenderer.Hit hit = GuideRenderer.hit(p.pos(), tv, screen.toGuideU(p.u()), screen.toGuideV(p.v()));
         switch (hit.target()) {
             case ROW -> send(p.pos(), TvBlockEntity.ACTION_TUNE, ChannelRepository.channels().get(hit.channelIndex()).id());

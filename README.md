@@ -25,13 +25,14 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 | Battery | Redstone, iron ingot, redstone in a vertical column |
 | TV | Iron ingots down both sides, battery top and bottom, glass in the middle |
 | Remote | Any button, battery, iron ingot in a vertical column |
-| Wide TV (2x1) | 2 TVs side by side |
-| Large TV (2x2) | 4 TVs in a square |
-| Large Wide TV (3x2) | 6 TVs: 3 across, 2 down |
 
-Big TVs grow to your right and upwards from where you place them (they won't place if something
-is in the way). Breaking any part removes the whole TV and gives it back. The remote works on any
-part of the screen; the guide is scaled up to fit.
+
+**Bigger screens:** place normal TVs next to each other (all facing the same way). Any full
+rectangle of them, from 2x1 up to 12 wide by 8 tall, becomes one screen: e.g. 3x1 ultra-wide,
+4x3, 8x5. Shapes that aren't a full rectangle stay as separate TVs until you fill them in.
+The bottom-left TV (as you look at it) runs the wall; the remote and right-clicking work
+anywhere on it. Breaking a TV splits the wall; whatever rectangles are left rejoin.
+(The crafted Wide/Large TVs from 0.2.0 still work if already placed, but are no longer craftable.)
 
 ## Using it
 
