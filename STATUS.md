@@ -1,5 +1,12 @@
 # Status
 
+## 0.8.1 — guide opens on categories
+
+- The guide first opens on the category list (All channels first) for each TV on each client; after
+  that it reopens wherever the player left it (category list, or a category's channels and page).
+  State is in memory only, so it starts on the category list again after restarting the game.
+- Verified: regression script and GitHub Actions build. Not tested in-game.
+
 ## 0.8.0 — guide categories and full-width guide
 
 - The guide fills the screen width (canvas 160 tall, at least 192 wide): 1x1 = 192, 2x2 = 192 (shrunk),

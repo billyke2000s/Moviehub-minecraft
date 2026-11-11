@@ -15,8 +15,9 @@ import java.util.Map;
  * The Sky-style TV guide, drawn in a blocky Minecraft look on the TV canvas.
  *
  * The canvas is {@link ScreenGeometry#GUIDE_HEIGHT} tall and as wide as the screen allows (at least 192),
- * see {@link GuideLayout}. Wide screens show Now / Next / Later in separate columns. The Categories button
- * switches the list to the categories from {@link ChannelCategories}; picking one filters the channels.
+ * see {@link GuideLayout}. Wide screens show Now / Next / Later in separate columns. The guide first opens
+ * on the category list ({@link ChannelCategories}, "All channels" first); picking one shows its channels,
+ * and the Categories button goes back to the list. After that it reopens wherever you left it.
  * Category, page and picker state are per TV and per player (client side only).
  */
 final class GuideRenderer {
@@ -58,7 +59,7 @@ final class GuideRenderer {
     /** Per-TV guide state on this client. */
     private static final class State {
         int category;          // index into ChannelRepository.categories(); 0 = All channels
-        boolean picking;       // showing the category list
+        boolean picking = true; // showing the category list; the guide opens on it the first time
         Integer channelScroll; // null until first shown, then the first visible row
         int categoryScroll;
     }
