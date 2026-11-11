@@ -1,5 +1,6 @@
 package com.billyke2000s.moviehubtv.client;
 
+import com.billyke2000s.moviehubtv.ModRegistry;
 import com.billyke2000s.moviehubtv.MovieHubTV;
 import com.billyke2000s.moviehubtv.block.TvBlockEntity;
 import com.billyke2000s.moviehubtv.block.TvScreenLayout;
@@ -11,8 +12,11 @@ import org.watermedia.api.player.PlayerAPI;
 import org.watermedia.api.player.videolan.VideoPlayer;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /** One WATERMeDIA player per TV that is on and tuned. Players are created on the render thread. */
@@ -26,6 +30,8 @@ final class TvVideoManager {
         String channelId = "";
         long tunedAt;
         boolean registered;
+        List<BlockPos> speakers = List.of();
+        long speakersScannedAt = Long.MIN_VALUE;
 
         Session(BlockPos pos) {
             this.pos = pos;
@@ -102,7 +108,7 @@ final class TvVideoManager {
         return SESSIONS.get(pos);
     }
 
-    /** Each client tick: stop players whose TV is gone, off, retuned or far away; set volume by distance. */
+    /** Each client tick: stop players whose TV is gone, off, retuned or far away; set volume by distance and speakers. */
     static void tick() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) {
@@ -128,10 +134,32 @@ final class TvVideoManager {
                 continue;
             }
             if (s.player != null) {
-                int volume = (int) Math.round(maxVolume * Math.max(0, 1 - dist / range));
+                long now = mc.level.getGameTime();
+                if (now - s.speakersScannedAt >= 20 || now < s.speakersScannedAt) {
+                    s.speakers = findSpeakers(mc, s.pos);
+                    s.speakersScannedAt = now;
+                }
+                double[] toSpeakers = new double[s.speakers.size()];
+                for (int i = 0; i < toSpeakers.length; i++) {
+                    toSpeakers[i] = Math.sqrt(ear.distanceToSqr(Vec3.atCenterOf(s.speakers.get(i))));
+                }
+                int volume = SpeakerMix.volume(maxVolume, range, dist, toSpeakers);
                 if (s.player.getVolume() != volume) s.player.setVolume(volume);
             }
         }
+    }
+
+    /** The nearest SpeakerMix.MAX_SPEAKERS speaker blocks within SpeakerMix.RADIUS of the TV. */
+    private static List<BlockPos> findSpeakers(Minecraft mc, BlockPos tv) {
+        int r = SpeakerMix.RADIUS;
+        List<BlockPos> found = new ArrayList<>();
+        for (BlockPos p : BlockPos.betweenClosed(tv.offset(-r, -r, -r), tv.offset(r, r, r))) {
+            if (p.distSqr(tv) <= (double) r * r && mc.level.getBlockState(p).is(ModRegistry.SPEAKER.get())) {
+                found.add(p.immutable());
+            }
+        }
+        found.sort(Comparator.comparingDouble(p -> p.distSqr(tv)));
+        return found.size() > SpeakerMix.MAX_SPEAKERS ? List.copyOf(found.subList(0, SpeakerMix.MAX_SPEAKERS)) : found;
     }
 
     static void releaseAll() {

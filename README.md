@@ -25,6 +25,7 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 | Battery | Copper ingot top and bottom, iron ingots left and right, redstone in the middle |
 | TV | Iron ingots down both sides, battery top and bottom, glass in the middle |
 | Remote | Any button, battery, iron ingot in a vertical column |
+| Speaker | Planks down both sides, any wool top middle, note block in the centre, redstone bottom middle |
 
 
 **TV sizes:** place normal TVs with the screen facing you. Matching TVs that touch in the

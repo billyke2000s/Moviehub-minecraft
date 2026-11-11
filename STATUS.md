@@ -1,5 +1,19 @@
 # Status
 
+## 0.6.0 — speakers
+
+- New craftable Speaker block (planks / wool / note block / redstone; see README). Up to 4 speakers
+  within 8 blocks of a TV count. Each adds 5 to the TV's loudest volume (never above 100) and 50% to its
+  hearing range (16 → 48 blocks with 4 speakers), and the TV is heard from each speaker as if standing at
+  the TV. Clients rescan for speakers once a second. All volume logic stays client-side; the speaker is
+  a plain block with no block entity.
+- Network version is now `tv-0.6.0`: server and every player must run 0.6.0 (the new block also changes
+  the registry, so older clients cannot join anyway).
+- Verified: `python3 tests/run_tv_regressions.py` runs the real `SpeakerMix` maths (volume, range, caps,
+  hearing from a speaker) and checks the speaker resources, recipe, loot table and axe tag. Full build:
+  GitHub Actions. Not tested in-game: how loud it actually sounds through WATERMeDIA/VLC, the block
+  model/texture, and the recipe in the crafting table.
+
 ## 0.5.8 — casing-aligned screen validation and automatic repair
 
 - Rendering and remote hit testing now resolve the same checked physical TV layout. Both take facing

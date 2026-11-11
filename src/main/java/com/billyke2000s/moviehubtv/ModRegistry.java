@@ -10,6 +10,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -54,6 +55,13 @@ public final class ModRegistry {
                 .lightLevel(state -> state.getValue(TvBlock.POWERED) ? 6 : 0);
     }
 
+    /** Plain block; TVs within SpeakerMix.RADIUS blocks of one get louder and can be heard from it (client side). */
+    public static final DeferredBlock<Block> SPEAKER = BLOCKS.register("speaker", () -> new Block(
+            BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.WOOD)
+                    .strength(1.0F)
+                    .sound(SoundType.WOOD)));
+
     public static final DeferredItem<BlockItem> TV_ITEM =
             ITEMS.register("tv", () -> new BlockItem(TV.get(), new Item.Properties()));
     public static final DeferredItem<BlockItem> TV_WIDE_ITEM =
@@ -62,6 +70,8 @@ public final class ModRegistry {
             ITEMS.register("tv_large", () -> new BlockItem(TV_LARGE.get(), new Item.Properties()));
     public static final DeferredItem<BlockItem> TV_LARGE_WIDE_ITEM =
             ITEMS.register("tv_large_wide", () -> new BlockItem(TV_LARGE_WIDE.get(), new Item.Properties()));
+    public static final DeferredItem<BlockItem> SPEAKER_ITEM =
+            ITEMS.register("speaker", () -> new BlockItem(SPEAKER.get(), new Item.Properties()));
     public static final DeferredItem<Item> BATTERY =
             ITEMS.register("battery", () -> new Item(new Item.Properties()));
     public static final DeferredItem<RemoteItem> REMOTE =
@@ -81,6 +91,7 @@ public final class ModRegistry {
                         output.accept(TV_WIDE_ITEM.get());
                         output.accept(TV_LARGE_ITEM.get());
                         output.accept(TV_LARGE_WIDE_ITEM.get());
+                        output.accept(SPEAKER_ITEM.get());
                         output.accept(REMOTE.get());
                         output.accept(BATTERY.get());
                     })

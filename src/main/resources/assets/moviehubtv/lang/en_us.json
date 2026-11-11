@@ -8,5 +8,6 @@
   "item.moviehubtv.remote.tip3": "Scroll wheel: move through the guide",
   "block.moviehubtv.tv_wide": "Wide TV",
   "block.moviehubtv.tv_large": "Large TV",
-  "block.moviehubtv.tv_large_wide": "Large Wide TV"
+  "block.moviehubtv.tv_large_wide": "Large Wide TV",
+  "block.moviehubtv.speaker": "Speaker"
 }

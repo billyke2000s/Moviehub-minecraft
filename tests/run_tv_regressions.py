@@ -97,8 +97,51 @@ public class Regression {
  }
 }'''
 
+SPEAKER_TEST = r'''package com.billyke2000s.moviehubtv.client;
+public class SpeakerTest {
+ static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
+ public static void main(String[] a){
+  double[] none={};
+  check(SpeakerMix.volume(80,16,0,none)==80,"no speakers: unchanged at the TV");
+  check(SpeakerMix.volume(80,16,8,none)==40,"no speakers: unchanged at half range");
+  check(SpeakerMix.volume(80,16,16,none)==0,"no speakers: silent at the old range");
+  check(SpeakerMix.volume(80,16,0,new double[]{6})==85,"one speaker: louder at the TV");
+  check(SpeakerMix.volume(80,16,16,new double[]{30})>0,"one speaker: still heard at the old range");
+  check(SpeakerMix.volume(80,16,30,new double[]{0})==85,"next to a speaker: as loud as next to the TV");
+  check(SpeakerMix.volume(80,16,0,new double[]{9,9,9,9})==100,"four speakers: full volume");
+  check(SpeakerMix.volume(80,16,0,new double[]{9,9,9,9,9,9})==100,"more than four: capped, never over 100");
+  check(SpeakerMix.range(16,4)==48,"four speakers triple the range");
+  check(SpeakerMix.range(16,9)==48,"range capped at four speakers");
+  check(SpeakerMix.volume(100,16,0,new double[]{1,1})==100,"volume never above 100");
+  check(SpeakerMix.volume(0,16,0,new double[]{1})==5,"a muted setting gets only the speaker boost");
+  check(SpeakerMix.volume(80,16,47,new double[]{47,47,47,47})>0&&SpeakerMix.volume(80,16,48,new double[]{48,48,48,48})==0,"silent at the extended range");
+  System.out.println("PASS: speaker volume and range maths");
+ }
+}'''
+
+def run_speaker_tests(repo):
+    with tempfile.TemporaryDirectory(prefix='tv-speaker-') as temporary:
+        root=Path(temporary)
+        package=root/'com/billyke2000s/moviehubtv/client'; package.mkdir(parents=True)
+        (package/'SpeakerMix.java').write_text((repo/'src/main/java/com/billyke2000s/moviehubtv/client/SpeakerMix.java').read_text())
+        (package/'SpeakerTest.java').write_text(SPEAKER_TEST)
+        subprocess.run(['javac','--release','21','-d',str(root/'classes'),*[str(p) for p in root.rglob('*.java')]],check=True)
+        subprocess.run(['java','-cp',str(root/'classes'),'com.billyke2000s.moviehubtv.client.SpeakerTest'],check=True)
+    # Speaker resources exist and the recipe uses only vanilla items.
+    resources=repo/'src/main/resources'
+    recipe=json.loads((resources/'data/moviehubtv/recipe/speaker.json').read_text())
+    assert recipe['result']['id']=='moviehubtv:speaker' and recipe['pattern']==['PWP','PNP','PRP']
+    for key in ['assets/moviehubtv/blockstates/speaker.json','assets/moviehubtv/models/block/speaker.json',
+                'assets/moviehubtv/models/item/speaker.json','assets/moviehubtv/textures/block/speaker_side.png',
+                'assets/moviehubtv/textures/block/speaker_top.png','data/moviehubtv/loot_table/blocks/speaker.json']:
+        assert (resources/key).exists(), key
+    assert 'moviehubtv:speaker' in json.loads((resources/'data/minecraft/tags/block/mineable/axe.json').read_text())['values']
+    assert 'block.moviehubtv.speaker' in json.loads((resources/'assets/moviehubtv/lang/en_us.json').read_text())
+    print('PASS: speaker block resources, recipe, loot and tool tag')
+
 def main():
     repo=Path(__file__).resolve().parents[1]
+    run_speaker_tests(repo)
     with tempfile.TemporaryDirectory(prefix='tv-regression-') as temporary:
         root=Path(temporary)
         sources=dict(STUBS)
