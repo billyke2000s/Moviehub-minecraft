@@ -11,8 +11,10 @@
 - The linked TV and the members of its wall must still be loaded; this does not force-load chunks.
 - New client defaults: speakerHearingRange=32, speakerFullVolumeRange=4. Existing hearingRange
   controls the TV itself. Update server and clients together: protocol tv-0.10.1.
-- Verification pending: production attenuation tests, speaker-start logic without a renderer,
-  existing regressions and full build. No in-game listening test is claimed.
+- Verified: production attenuation/mute/master-volume/no-clipping/retention tests; the actual
+  SpeakerAudio class starts a shared TV player without a renderer and rejects off, distant,
+  stale, untuned, unloaded and cross-dimension speakers. Existing regressions and the full
+  GitHub Actions build pass. No in-game listening test is claimed.
 
 ## 0.10.0 — real MovieHub free services and TMDB posters
 
