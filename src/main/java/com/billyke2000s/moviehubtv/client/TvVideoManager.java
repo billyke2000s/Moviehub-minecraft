@@ -75,6 +75,12 @@ final class TvVideoManager {
                 s.channelId = channel.id();
                 return s;
             }
+            // Pluto links need a current session token; while it is being fetched, try again next frame.
+            String url = channel.url();
+            if (PlutoClient.isPlutoId(channel.id())) {
+                url = PlutoClient.streamUrl(channel.id());
+                if (url == null) return s;
+            }
             if (s.player != null) s.player.release();
             s.player = new VideoPlayer(Minecraft.getInstance());
             s.channelId = channel.id();
@@ -86,7 +92,7 @@ final class TvVideoManager {
                 s.registered = true;
             }
             player.setVolume(0);
-            player.start(URI.create(channel.url()));
+            player.start(URI.create(url));
         }
         return s;
     }

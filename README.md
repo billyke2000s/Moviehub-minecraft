@@ -47,7 +47,10 @@ part of the screen; the guide is scaled up to fit.
 
 ## Channels and guide
 
-- Channels: every channel in Moviehub-freelinks
+- Pluto TV comes straight from Pluto for your region (UK line-up in the UK): the mod gets a free
+  session token from Pluto's start service the way Pluto's website does (no account) and builds the
+  current `/v2/stitch/...?jwt=` stream links. Turn off with `plutoNative = false`.
+- Other channels: every channel in Moviehub-freelinks
   [`output/theloop.m3u`](https://github.com/billyke2000s/Moviehub-freelinks/blob/main/output/theloop.m3u),
   numbered from 101, then [Free-TV](https://github.com/Free-TV/IPTV) (free channels streamed by the
   broadcasters themselves, e.g. BBC, STV, S4C), UK channels first. Free-TV's on-demand groups and

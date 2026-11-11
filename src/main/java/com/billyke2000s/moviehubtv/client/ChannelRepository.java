@@ -108,12 +108,23 @@ public final class ChannelRepository {
                     + ClientConfig.get(ClientConfig.EXTRA_PLAYLISTS, ClientConfig.DEFAULT_EXTRA_PLAYLISTS)).split(",");
             List<Channel> list = new ArrayList<>();
             Set<String> seen = new HashSet<>();
+            // Pluto first, straight from Pluto for this player's region. When that works, Pluto entries
+            // in the playlists (other regions' line-ups, old-style links) are skipped.
+            boolean plutoNative = false;
+            if (ClientConfig.get(ClientConfig.PLUTO_NATIVE, true)) {
+                try {
+                    Path file = fetchPluto(cache.resolve("pluto-channels.json"));
+                    plutoNative = addPluto(Files.readString(file, StandardCharsets.UTF_8), list, seen) > 0;
+                } catch (Exception e) {
+                    MovieHubTV.LOGGER.warn("Could not load Pluto TV channels; using the playlists instead", e);
+                }
+            }
             for (int i = 0; i < urls.length; i++) {
                 String url = urls[i].trim();
                 if (url.isEmpty()) continue;
                 try {
                     Path file = fetch(url, cache.resolve("playlist-" + i + ".m3u"), PLAYLIST_MAX_AGE);
-                    parseM3u(Files.readString(file, StandardCharsets.UTF_8), list, seen);
+                    parseM3u(Files.readString(file, StandardCharsets.UTF_8), list, seen, plutoNative);
                 } catch (Exception e) {
                     MovieHubTV.LOGGER.warn("Could not load playlist {}", url, e);
                 }
@@ -148,6 +159,38 @@ public final class ChannelRepository {
     }
 
     /** Downloads url to target unless a fresh enough copy exists; falls back to an old copy when offline. */
+    /** Adds Pluto's live channels; their url is "pluto:<id>" and is turned into a real link at play time. */
+    static int addPluto(String json, List<Channel> out, Set<String> seen) {
+        int added = 0;
+        for (PlutoClient.PlutoChannel c : PlutoClient.parseChannels(json)) {
+            if (seen.add(c.id())) {
+                out.add(new Channel(101 + out.size(), c.id(), c.name(), "pluto:" + c.id()));
+                added++;
+            }
+        }
+        return added;
+    }
+
+    private static Path fetchPluto(Path target) throws IOException, InterruptedException {
+        if (Files.exists(target)
+                && System.currentTimeMillis() - Files.getLastModifiedTime(target).toMillis() < PLAYLIST_MAX_AGE.toMillis()) {
+            return target;
+        }
+        try {
+            HttpResponse<String> response = PlutoClient.http().send(PlutoClient.channelsRequest(),
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) throw new IOException("HTTP " + response.statusCode() + " for Pluto channels");
+            Files.writeString(target, response.body(), StandardCharsets.UTF_8);
+            return target;
+        } catch (IOException e) {
+            if (Files.exists(target)) {
+                MovieHubTV.LOGGER.warn("Using cached Pluto channel list ({})", e.toString());
+                return target;
+            }
+            throw e;
+        }
+    }
+
     private static Path fetch(String url, Path target, Duration maxAge) throws IOException, InterruptedException {
         if (Files.exists(target)
                 && System.currentTimeMillis() - Files.getLastModifiedTime(target).toMillis() < maxAge.toMillis()) {
@@ -181,6 +224,11 @@ public final class ChannelRepository {
      * Skips on-demand ("VOD ...") groups and streams served from bare IP addresses.
      */
     static void parseM3u(String text, List<Channel> out, Set<String> seen) {
+        parseM3u(text, out, seen, false);
+    }
+
+    /** As above; with skipPluto, Pluto entries are left out (Pluto was already loaded natively). */
+    static void parseM3u(String text, List<Channel> out, Set<String> seen, boolean skipPluto) {
         List<Entry> entries = new ArrayList<>();
         String name = null;
         Map<String, String> attrs = Map.of();
@@ -193,10 +241,10 @@ public final class ChannelRepository {
                 attrs = attributes(comma >= 0 ? line.substring(0, comma) : line);
             } else if (!line.startsWith("#") && name != null) {
                 String group = attrs.getOrDefault("group-title", "");
-                if (!group.startsWith("VOD") && !IP_HOST.matcher(line).find()) {
-                    entries.add(new Entry(channelIdFor(line, name, attrs.get("tvg-id")), name, line,
-                            PREFERRED_GROUP.equalsIgnoreCase(group)));
-                }
+                String id = channelIdFor(line, name, attrs.get("tvg-id"));
+                boolean skip = group.startsWith("VOD") || IP_HOST.matcher(line).find()
+                        || (skipPluto && PlutoClient.isPlutoId(id));
+                if (!skip) entries.add(new Entry(id, name, line, PREFERRED_GROUP.equalsIgnoreCase(group)));
                 name = null;
                 attrs = Map.of();
             }

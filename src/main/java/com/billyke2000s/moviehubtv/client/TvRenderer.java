@@ -99,6 +99,7 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
             return ChannelRepository.channels().isEmpty() ? "Tuning in..." : "Channel not available";
         }
         if (!TvVideoManager.videoAvailable()) return "Video needs VLC - see README";
+        if (PlutoClient.isPlutoId(channel.id()) && PlutoClient.recentlyFailed()) return "Pluto TV unavailable - retrying";
         if (session != null && session.player != null && (session.player.isBroken() || session.player.isEnded())) {
             return "No signal";
         }

@@ -19,6 +19,7 @@ public final class ClientConfig {
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.ConfigValue<String> PLAYLISTS;
     public static final ModConfigSpec.ConfigValue<String> EXTRA_PLAYLISTS;
+    public static final ModConfigSpec.BooleanValue PLUTO_NATIVE;
     public static final ModConfigSpec.ConfigValue<String> GUIDE_URL;
     public static final ModConfigSpec.IntValue VOLUME;
     public static final ModConfigSpec.IntValue HEARING_RANGE;
@@ -27,6 +28,9 @@ public final class ClientConfig {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         PLAYLISTS = b.comment("M3U playlist URLs, separated by commas. Channels are numbered from 101 in this order.")
                 .define("playlists", DEFAULT_PLAYLISTS);
+        PLUTO_NATIVE = b.comment("Load Pluto TV straight from Pluto for your region (with a fresh session token).",
+                        "Turn off to use only the Pluto entries in the playlists.")
+                .define("plutoNative", true);
         EXTRA_PLAYLISTS = b.comment("More M3U playlists, added after the ones above. Clear it to hide Free-TV's channels.")
                 .define("extraPlaylists", DEFAULT_EXTRA_PLAYLISTS);
         GUIDE_URL = b.comment("XMLTV guide (.xml or .xml.gz) used for now/next listings.")

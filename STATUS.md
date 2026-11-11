@@ -1,6 +1,6 @@
 # Status
 
-Version 0.3.0: adds Free-TV channels (0.2.0 added Wide, Large and Large Wide TVs).
+Version 0.4.0: Pluto TV with session tokens, for the player's own region (0.3.0 added Free-TV, 0.2.0 big TVs).
 
 ## Verified
 
@@ -21,9 +21,15 @@ Version 0.3.0: adds Free-TV channels (0.2.0 added Wide, Large and Large Wide TVs
   from 557; guide listings for 673 channels (was 452), including 44 of 52 UK Free-TV channels
   (BBC One, BBC Two, S4C checked). Parsing the 58 MB guide took about 3 seconds.
 
+- 0.3.0 in-game (11 Nov 2026, WATERMeDIA 2.1.37): 2,229 channels and the guide load and players start,
+  but Pluto channels show no picture. Cause: Pluto retired its token-less stream links; every stream now
+  needs a session token from `boot.pluto.tv/v4/start`. 0.4.0 fetches one (parsing unit-tested with sample
+  data) and loads Pluto's channel list for the player's region.
+
 ## Not yet verified
 
-- Video playback with WATERMeDIA 2.1.37 in-game, including whether Free-TV streams play
+- Pluto playback with 0.4.0's session tokens (Pluto's start service could not be reached from the
+  build environment), and video playback in general with WATERMeDIA 2.1.37 in-game, including whether Free-TV streams play
   (some are geo-blocked to their country).
 - Big TVs (0.2.0): placing, breaking, rendering across blocks and remote aiming are compile-checked only.
   The screen maths for the one-block TV is unchanged (same numbers as 0.1.0).
