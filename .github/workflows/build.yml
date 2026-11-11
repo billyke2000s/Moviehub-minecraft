@@ -42,6 +42,9 @@ jobs:
       - name: TV placement and wall regression checks
         run: python3 tests/run_tv_regressions.py
 
+      - name: Speaker audio without a visible TV
+        run: python3 tests/run_speaker_audio_regressions.py
+
       - name: Build with Gradle
         run: |
           set -o pipefail

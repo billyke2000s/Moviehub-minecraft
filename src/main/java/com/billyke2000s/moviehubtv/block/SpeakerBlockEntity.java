@@ -10,6 +10,8 @@ import org.jetbrains.annotations.Nullable;
 
 /** Remembers which TV block a speaker is linked to, so breaking the speaker can unlink it. Server side. */
 public class SpeakerBlockEntity extends BlockEntity {
+    /** Installed by the client entry point; common/server code never references a client class. */
+    public static java.util.function.Consumer<SpeakerBlockEntity> clientLoaded = speaker -> {};
     private @Nullable BlockPos tv;
 
     public SpeakerBlockEntity(BlockPos pos, BlockState state) {
@@ -21,6 +23,13 @@ public class SpeakerBlockEntity extends BlockEntity {
     void setTv(@Nullable BlockPos tv) {
         this.tv = tv == null ? null : tv.immutable();
         setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level != null && level.isClientSide) clientLoaded.accept(this);
     }
 
     @Override
@@ -34,4 +43,17 @@ public class SpeakerBlockEntity extends BlockEntity {
         super.loadAdditional(tag, registries);
         tv = tag.contains("Tv") ? BlockPos.of(tag.getLong("Tv")) : null;
     }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = new CompoundTag();
+        saveAdditional(tag, registries);
+        return tag;
+    }
+
+    @Override
+    public net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> getUpdatePacket() {
+        return net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this);
+    }
 }
+

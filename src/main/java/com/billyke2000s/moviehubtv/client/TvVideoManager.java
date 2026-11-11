@@ -134,6 +134,9 @@ final class TvVideoManager {
         }
         int master = ClientConfig.get(ClientConfig.MASTER_VOLUME, 100);
         int range = ClientConfig.get(ClientConfig.HEARING_RANGE, 16);
+        int speakerRange = ClientConfig.get(ClientConfig.SPEAKER_HEARING_RANGE, 32);
+        int fullVolumeRange = ClientConfig.get(ClientConfig.SPEAKER_FULL_VOLUME_RANGE, 4);
+        SpeakerAudio.tick(mc, speakerRange);
         Vec3 ear = mc.player.getEyePosition();
         Iterator<Session> it = SESSIONS.values().iterator();
         while (it.hasNext()) {
@@ -141,7 +144,12 @@ final class TvVideoManager {
             double dist = Math.sqrt(ear.distanceToSqr(Vec3.atCenterOf(s.pos)));
             TvBlockEntity tv = mc.level.isLoaded(s.pos) && mc.level.getBlockEntity(s.pos) instanceof TvBlockEntity t ? t : null;
             TvScreenLayout.Layout layout = tv == null ? null : TvScreenLayout.resolve(mc.level, s.pos);
-            boolean keep = dist < 64 && tv != null && tv.isOn() && tv.channelId().equals(s.channelId)
+            List<BlockPos> speakers = layout == null ? List.of() : speakers(mc, layout);
+            double[] toSpeakers = new double[speakers.size()];
+            for (int i = 0; i < toSpeakers.length; i++) {
+                toSpeakers[i] = Math.sqrt(ear.distanceToSqr(Vec3.atCenterOf(speakers.get(i))));
+            }
+            boolean keep = SpeakerMix.keepPlaying(dist, speakerRange, toSpeakers) && tv != null && tv.isOn() && tv.channelId().equals(s.channelId)
                     && tv.isWallController() && layout != null;
             if (!keep) {
                 s.release();
@@ -159,12 +167,7 @@ final class TvVideoManager {
                     s.player.setPauseMode(tv.mediaPaused());
                     s.mediaRevision = tv.mediaRevision();
                 }
-                List<BlockPos> speakers = speakers(mc, layout);
-                double[] toSpeakers = new double[speakers.size()];
-                for (int i = 0; i < toSpeakers.length; i++) {
-                    toSpeakers[i] = Math.sqrt(ear.distanceToSqr(Vec3.atCenterOf(speakers.get(i))));
-                }
-                int volume = SpeakerMix.volume(tv.volume(), master, range, dist, toSpeakers);
+                int volume = SpeakerMix.volume(tv.volume(), master, range, speakerRange, fullVolumeRange, dist, toSpeakers);
                 if (s.player.getVolume() != volume) s.player.setVolume(volume);
             }
         }
@@ -178,7 +181,9 @@ final class TvVideoManager {
                 BlockPos member = com.billyke2000s.moviehubtv.block.TvWall.memberPos(layout.controller(), layout.facing(), x, y);
                 if (!(mc.level.getBlockEntity(member) instanceof TvBlockEntity tv)) continue;
                 for (BlockPos p : tv.speakers()) {
-                    if (mc.level.isLoaded(p) && mc.level.getBlockState(p).is(ModRegistry.SPEAKER.get())) found.add(p);
+                    if (mc.level.isLoaded(p) && mc.level.getBlockState(p).is(ModRegistry.SPEAKER.get())
+                            && mc.level.getBlockEntity(p) instanceof com.billyke2000s.moviehubtv.block.SpeakerBlockEntity speaker
+                            && member.equals(speaker.tv())) found.add(p);
                 }
             }
         }
