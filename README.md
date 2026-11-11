@@ -31,8 +31,9 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 sneak and scroll while the guide is open). Each step is 5, from 0 to 100; everyone hears that TV
 at its volume. Your own `masterVolume` setting scales all TVs for you only.
 
-**Speakers:** place a speaker anywhere within 32 blocks of a TV and it links to the nearest TV
-(a message says which). You hear the TV from each linked speaker as if standing at the TV, so
+**Speakers:** right-click a TV while holding speakers to tune them to that TV, then place them
+anywhere within 48 blocks of it (sneak + right-click places a speaker against the TV instead).
+Untuned speakers link to the nearest TV within 32 blocks when placed. A message says which TV. You hear the TV from each linked speaker as if standing at the TV, so
 speakers carry the sound around a room or building. Right-click a speaker with an empty hand
 to relink it to whichever TV is nearest now. Up to 8 speakers per TV block.
 

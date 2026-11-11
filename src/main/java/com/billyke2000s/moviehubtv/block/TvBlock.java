@@ -3,7 +3,11 @@ package com.billyke2000s.moviehubtv.block;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -95,6 +99,21 @@ public class TvBlock extends HorizontalDirectionalBlock implements EntityBlock {
     @Override
     public @Nullable BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new TvBlockEntity(pos, state);
+    }
+
+    /** Right-clicking a TV with speakers tunes them to it (sneak to place a speaker against the TV instead). */
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player,
+                                              InteractionHand hand, BlockHitResult hit) {
+        if (!stack.is(com.billyke2000s.moviehubtv.ModRegistry.SPEAKER_ITEM.get())) {
+            return super.useItemOn(stack, state, level, pos, player, hand, hit);
+        }
+        if (!level.isClientSide) {
+            SpeakerBlock.tune(stack, level, pos);
+            player.displayClientMessage(Component.translatable("block.moviehubtv.speaker.tuned",
+                    pos.getX(), pos.getY(), pos.getZ(), SpeakerLink.MAX_TUNED_DISTANCE), true);
+        }
+        return ItemInteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Override

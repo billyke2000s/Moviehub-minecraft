@@ -1,5 +1,13 @@
 # Status
 
+## 0.7.1 — tune speakers to a chosen TV
+
+- Right-clicking a TV with a speaker stack stores that TV (position + dimension) on the stack; placing a
+  tuned speaker links it to that TV if it still exists in the same dimension within 48 blocks, otherwise it
+  stays unlinked and says so. Sneak + right-click places a speaker against a TV as normal. Untuned
+  speakers keep the 0.7.0 nearest-TV rule. Same network version as 0.7.0 (`tv-0.7.0`).
+- Verified: regression script and GitHub Actions build. Not tested in-game.
+
 ## 0.7.0 — TV volume and linked speakers (replaces 0.6.0's speaker behaviour)
 
 - Each TV has its own saved volume (0-100, default 80, steps of 5), changed with the remote's scroll

@@ -2,6 +2,9 @@ package com.billyke2000s.moviehubtv.block;
 
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
@@ -17,8 +20,10 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A speaker plays the sound of the nearest TV (within {@link SpeakerLink#RADIUS} blocks when placed).
- * Right-click it with an empty hand to link it again to whichever TV is nearest now.
+ * A speaker plays the sound of a TV. Right-click a TV with speakers in hand to tune them to it, then
+ * place them up to {@link SpeakerLink#MAX_TUNED_DISTANCE} blocks away. Untuned speakers link to the nearest
+ * TV within {@link SpeakerLink#RADIUS} blocks. Right-click a placed speaker with an empty hand to relink it
+ * to the nearest TV.
  */
 public class SpeakerBlock extends Block implements EntityBlock {
     public static final MapCodec<SpeakerBlock> CODEC = simpleCodec(SpeakerBlock::new);
@@ -37,10 +42,35 @@ public class SpeakerBlock extends Block implements EntityBlock {
         return new SpeakerBlockEntity(pos, state);
     }
 
+    /** Item data written when a speaker item is right-clicked on a TV. */
+    public static final String TUNED_TV = "moviehubtv_tv";
+    public static final String TUNED_DIMENSION = "moviehubtv_dimension";
+
+    /** Tunes a held speaker stack to the TV block at tvPos. Server side. */
+    public static void tune(ItemStack stack, Level level, BlockPos tvPos) {
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
+            tag.putLong(TUNED_TV, tvPos.asLong());
+            tag.putString(TUNED_DIMENSION, level.dimension().location().toString());
+        });
+    }
+
     @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
-        if (level instanceof ServerLevel server) report(placer, SpeakerLink.link(server, pos));
+        if (!(level instanceof ServerLevel server)) return;
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        if (tag.contains(TUNED_TV)) {
+            BlockPos tv = BlockPos.of(tag.getLong(TUNED_TV));
+            boolean sameDimension = server.dimension().location().toString().equals(tag.getString(TUNED_DIMENSION));
+            BlockPos linked = sameDimension ? SpeakerLink.linkTuned(server, pos, tv) : null;
+            if (placer instanceof Player player) {
+                player.displayClientMessage(linked != null
+                        ? Component.translatable("block.moviehubtv.speaker.linked", tv.getX(), tv.getY(), tv.getZ())
+                        : Component.translatable("block.moviehubtv.speaker.tuned_gone", SpeakerLink.MAX_TUNED_DISTANCE), true);
+            }
+            return;
+        }
+        report(placer, SpeakerLink.link(server, pos));
     }
 
     /** Empty-hand right-click relinks; with an item in hand (e.g. another speaker) it is placed as normal. */
