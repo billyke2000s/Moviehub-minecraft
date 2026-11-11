@@ -4,7 +4,7 @@ Live TV from [MovieHub](https://github.com/billyke2000s/moviehub) inside Minecra
 A TV block shows a Sky-style TV guide the moment you turn it on, and a Wii-style
 remote lets you point at the screen with a hand cursor and pick a channel.
 
-**Minecraft Java 1.21.1 · NeoForge · client and singleplayer.** Bedrock is not supported.
+**Minecraft Java 1.21.1 · NeoForge · client and server.** Bedrock is not supported.
 
 ## Install
 
@@ -135,4 +135,13 @@ stable release tagged `v<mod_version>`; bump `mod_version` to release a new vers
 See [STATUS.md](STATUS.md).
 
 
-For a local source build, check out billyke2000s/moviehub at commit 08343545afd7b535f8c9112f818ad60ee4432bd4 in upstream-moviehub before running Gradle. CI does this automatically.
+For a local source build, check out billyke2000s/moviehub at commit 08343545afd7b535f8c9112f818ad60ee4432bd4
+in `upstream-moviehub`. Collect its portable packages before running Gradle:
+
+```sh
+python3 -m pip install --only-binary=:all: --platform any --no-compile --target build/engine-packages requests==2.32.5 six==1.17.0
+./gradlew build
+```
+
+CI performs these steps automatically. The server needs Python 3.10+, but no pip setup or additional
+provider download: the published jar already includes the runtime, portable packages and licences.

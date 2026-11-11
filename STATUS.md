@@ -18,8 +18,15 @@
 - Source URLs/headers are ephemeral live TV updates, not saved in world NBT. After a host restart,
   reselect the film/episode; expiring links may also need a new source search. Some remote services
   can fail or return no links. No claim that every website/title works, or of in-game verification.
-- Verification pending: full build, upstream resolver fixtures, bridge contract, bundled-source
-  hashes, TMDB-poster DTO and source selection tests. Protocol tv-0.10.0 on server and clients.
+- Verified: full build; all 144 upstream resolver tests and two worker bridge tests; bundled-source
+  hashes/licences; clean extracted-worker startup using only bundled dependencies; production Java
+  host extraction/Python startup and all 74 service groups; TMDB poster DTO and server-issued source
+  selection; 17 PNG checks; HLS key/segment and DASH-template transport fixtures; existing TV tests.
+- A live GitHub-runner search for Night of the Living Dead (1968), through all 69 movie-capable
+  service groups, returned 15 media-validated links from nine websites. Some
+  services returned HTTP failures, timeouts or no match. This is resolver/media probing, not
+  in-game rendering, VLC playback, audio verification or a live test using the owner's TMDB key.
+- Protocol tv-0.10.0 on server and clients.
 
 ## 0.9.0 — free Movies / Shows / Anime tabs
 
