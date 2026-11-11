@@ -21,8 +21,12 @@
   release stale poster/video textures. These address observed local texture errors; the friend's
   exact black-picture cause and in-game success remain unverified.
 - Update server and every client together: protocol tv-0.11.0. TMDB credentials remain host-only.
-- Validation pending: full CI build, browse regression fixtures and real Minecraft image/hidden-GL
-  regressions. No in-game multiplayer playback or visual test is claimed.
+- Verified: full CI build; production browse-menu pagination and Netflix-ID selection fixtures;
+  combined provider/region/genre/year/country/language filters, anime constraints and validation;
+  actual Minecraft JPEG-to-PNG decoding and mixed-case resource IDs; hidden OpenGL allocated-frame
+  checks and restoration of real/cached texture bindings and unpack state. Existing TV/wall/speaker,
+  resolver and media transport suites also pass. No in-game multiplayer playback or visual test
+  is claimed.
 
 ## 0.10.1 — speaker distance and audio startup
 
