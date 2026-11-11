@@ -20,10 +20,9 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A speaker plays the sound of a TV. Right-click a TV with speakers in hand to tune them to it, then
- * place them up to {@link SpeakerLink#MAX_TUNED_DISTANCE} blocks away. Untuned speakers link to the nearest
- * TV within {@link SpeakerLink#RADIUS} blocks. Right-click a placed speaker with an empty hand to relink it
- * to the nearest TV.
+ * A speaker plays the sound of the TV it was tuned to: right-click a TV with speakers in hand, then place
+ * them up to {@link SpeakerLink#MAX_TUNED_DISTANCE} blocks away. Untuned speakers do nothing. Right-click
+ * a placed speaker with an empty hand to see which TV it plays.
  */
 public class SpeakerBlock extends Block implements EntityBlock {
     public static final MapCodec<SpeakerBlock> CODEC = simpleCodec(SpeakerBlock::new);
@@ -70,14 +69,21 @@ public class SpeakerBlock extends Block implements EntityBlock {
             }
             return;
         }
-        report(placer, SpeakerLink.link(server, pos));
+        if (placer instanceof Player player) {
+            player.displayClientMessage(Component.translatable("block.moviehubtv.speaker.untuned"), true);
+        }
     }
 
-    /** Empty-hand right-click relinks; with an item in hand (e.g. another speaker) it is placed as normal. */
+    /** Empty-hand right-click says which TV the speaker plays; with an item in hand it is placed as normal. */
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (!player.getMainHandItem().isEmpty()) return InteractionResult.PASS;
-        if (level instanceof ServerLevel server) report(player, SpeakerLink.link(server, pos));
+        if (!level.isClientSide && level.getBlockEntity(pos) instanceof SpeakerBlockEntity speaker) {
+            BlockPos tv = speaker.tv();
+            player.displayClientMessage(tv == null
+                    ? Component.translatable("block.moviehubtv.speaker.untuned")
+                    : Component.translatable("block.moviehubtv.speaker.linked", tv.getX(), tv.getY(), tv.getZ()), true);
+        }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
@@ -85,12 +91,5 @@ public class SpeakerBlock extends Block implements EntityBlock {
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (level instanceof ServerLevel server && !state.is(newState.getBlock())) SpeakerLink.unlink(server, pos);
         super.onRemove(state, level, pos, newState, movedByPiston);
-    }
-
-    private static void report(@Nullable LivingEntity who, @Nullable BlockPos tv) {
-        if (!(who instanceof Player player)) return;
-        player.displayClientMessage(tv == null
-                ? Component.translatable("block.moviehubtv.speaker.no_tv", SpeakerLink.RADIUS)
-                : Component.translatable("block.moviehubtv.speaker.linked", tv.getX(), tv.getY(), tv.getZ()), true);
     }
 }

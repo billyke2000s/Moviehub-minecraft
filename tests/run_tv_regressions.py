@@ -143,6 +143,8 @@ def run_speaker_tests(repo):
     assert 'ACTION_VOLUME_UP' in (code/'client/RemoteControl.java').read_text()
     assert 'SpeakerBlock.tune(stack' in (code/'block/TvBlock.java').read_text()
     assert 'SpeakerLink.linkTuned' in (code/'block/SpeakerBlock.java').read_text()
+    link=(code/'block/SpeakerLink.java').read_text()
+    assert 'nearestTv' not in link and 'public static @Nullable BlockPos link(' not in link, 'untuned speakers must not link'
     assert 'block.moviehubtv.speaker.tuned' in json.loads((resources/'assets/moviehubtv/lang/en_us.json').read_text())
     print('PASS: speaker block resources, recipe, loot, tool tag; volume and speaker links wired in')
 

@@ -1,5 +1,12 @@
 # Status
 
+## 0.7.2 — only tuned speakers work
+
+- Removed nearest-TV linking: a speaker plays a TV only if it was tuned by right-clicking that TV with
+  the speaker item before placing. Untuned speakers stay silent and say so; empty-hand right-click only
+  reports the linked TV. Breaking a speaker drops an untuned speaker (tune it again before re-placing).
+- Verified: regression script and GitHub Actions build. Not tested in-game.
+
 ## 0.7.1 — tune speakers to a chosen TV
 
 - Right-clicking a TV with a speaker stack stores that TV (position + dimension) on the stack; placing a

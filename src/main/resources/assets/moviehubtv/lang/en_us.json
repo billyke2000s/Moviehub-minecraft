@@ -12,7 +12,7 @@
   "block.moviehubtv.speaker": "Speaker",
   "item.moviehubtv.remote.volume": "TV volume: %s",
   "block.moviehubtv.speaker.linked": "Speaker linked to the TV at %s, %s, %s",
-  "block.moviehubtv.speaker.no_tv": "No TV within %s blocks to link this speaker to",
   "block.moviehubtv.speaker.tuned": "Speakers tuned to the TV at %s, %s, %s. Place them within %s blocks of it",
-  "block.moviehubtv.speaker.tuned_gone": "That TV is gone or more than %s blocks away, so this speaker isn't linked. Right-click it with an empty hand to link the nearest TV"
+  "block.moviehubtv.speaker.tuned_gone": "That TV is gone or more than %s blocks away, so this speaker isn't playing anything",
+  "block.moviehubtv.speaker.untuned": "This speaker isn't tuned to a TV. Break it, right-click a TV while holding it, then place it again"
 }

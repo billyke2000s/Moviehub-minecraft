@@ -33,9 +33,10 @@ at its volume. Your own `masterVolume` setting scales all TVs for you only.
 
 **Speakers:** right-click a TV while holding speakers to tune them to that TV, then place them
 anywhere within 48 blocks of it (sneak + right-click places a speaker against the TV instead).
-Untuned speakers link to the nearest TV within 32 blocks when placed. A message says which TV. You hear the TV from each linked speaker as if standing at the TV, so
-speakers carry the sound around a room or building. Right-click a speaker with an empty hand
-to relink it to whichever TV is nearest now. Up to 8 speakers per TV block.
+Untuned speakers play nothing. A message says which TV a speaker plays. You hear the TV from each linked speaker as if standing at the TV, so
+speakers carry the sound around a room or building. Right-click a placed speaker with an empty
+hand to see which TV it plays; to change it, break it, tune it on another TV and place it again.
+Up to 8 speakers per TV block.
 
 
 **TV sizes:** place normal TVs with the screen facing you. Matching TVs that touch in the
