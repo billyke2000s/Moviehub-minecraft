@@ -248,9 +248,8 @@ final class PlutoClient {
         int pages = first.has("totalPages") ? first.get("totalPages").getAsInt() : 1;
         if (pages > 20) throw new IllegalStateException("Unexpectedly large free catalogue");
         JsonArray combined = VodCatalogue.array(first, "categories");
-        int pageSize = combined.size();
         for (int page = 2; page <= pages; page++) {
-            JsonObject next = JsonParser.parseString(vodGet(route + "&page=" + page + "&offset=" + ((page - 1) * pageSize))).getAsJsonObject();
+            JsonObject next = JsonParser.parseString(vodGet(route + "&page=" + page)).getAsJsonObject();
             if (next.has("page") && next.get("page").getAsInt() != page)
                 throw new IllegalStateException("Provider returned an incomplete catalogue page");
             JsonArray categories = VodCatalogue.array(next, "categories");
@@ -261,4 +260,3 @@ final class PlutoClient {
         return first.toString();
     }
 }
-
