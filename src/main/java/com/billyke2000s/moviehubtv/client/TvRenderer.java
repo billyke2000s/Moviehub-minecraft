@@ -1,7 +1,7 @@
 package com.billyke2000s.moviehubtv.client;
 
-import com.billyke2000s.moviehubtv.block.TvBlock;
 import com.billyke2000s.moviehubtv.block.TvBlockEntity;
+import com.billyke2000s.moviehubtv.block.TvScreenLayout;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -32,15 +32,20 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
 
     @Override
     public void render(TvBlockEntity tv, float partialTick, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
-        // In a TV wall, only the bottom-left TV draws, and it draws the whole wall's screen.
-        if (!tv.isWallController()) return;
         BlockPos pos = tv.getBlockPos();
+        TvScreenLayout.Layout layout = TvScreenLayout.resolve(tv.getLevel(), pos);
+        if (layout == null) {
+            // Never project an unverified saved rectangle into empty space. Ask the server to regroup.
+            RemoteControl.requestLayoutRepair(pos);
+            return;
+        }
+        if (!layout.controller().equals(pos)) return;
         RemoteControl.Pointer pointer = RemoteControl.pointer();
         boolean pointed = pointer != null && pointer.pos().equals(pos);
         if (!tv.isOn() && !pointed) return;
 
-        Direction facing = tv.getBlockState().getValue(TvBlock.FACING);
-        ScreenGeometry.Screen screen = ScreenGeometry.screenFor(tv);
+        Direction facing = layout.facing();
+        ScreenGeometry.Screen screen = ScreenGeometry.screen(layout.width(), layout.height());
         pose.pushPose();
         ScreenGeometry.applyScreenTransform(pose, facing, screen);
         Canvas c = new Canvas(pose, buffers, font);

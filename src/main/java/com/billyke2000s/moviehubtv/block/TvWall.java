@@ -15,7 +15,7 @@ import java.util.Map;
  * Joins normal TVs placed next to each other into one big screen ("TV wall").
  *
  * TVs that face the same way and touch side by side or above/below form a group. If the group fills
- * a whole rectangle (at most {@link #MAX_WIDTH} x {@link #MAX_HEIGHT}), every TV in it becomes part of
+ * a supported rectangle (2x1, 2x2 or 3x2), every TV in it becomes part of
  * one screen: the bottom-left TV (as the viewer sees it) is the controller, whose power and channel
  * the whole wall uses. Any other shape stays as separate TVs. Worked out on the server whenever a TV
  * is placed or removed, saved in each TV's block entity and synced to clients.
@@ -23,7 +23,7 @@ import java.util.Map;
 public final class TvWall {
     private TvWall() {}
 
-    public static final int MAX_WIDTH = 12;
+    public static final int MAX_WIDTH = 12; // Retained for reading existing wall metadata.
     public static final int MAX_HEIGHT = 8;
     private static final int MAX_MEMBERS = MAX_WIDTH * MAX_HEIGHT;
 
@@ -32,10 +32,11 @@ public final class TvWall {
     }
 
     /** Recomputes the group containing start (if start is a normal TV). Server side only. */
-    public static void recompute(Level level, BlockPos start) {
-        if (level.isClientSide) return;
+    public static boolean recompute(Level level, BlockPos start) {
+        if (level.isClientSide) return true;
+        if (!level.isLoaded(start)) return false;
         BlockState first = level.getBlockState(start);
-        if (!first.is(ModRegistry.TV.get())) return;
+        if (!first.is(ModRegistry.TV.get())) return true;
         Direction facing = first.getValue(TvBlock.FACING);
         Direction right = TvBlock.rightOf(facing);
 
@@ -51,7 +52,9 @@ public final class TvWall {
             int[] c = members.get(p);
             for (int[] step : steps) {
                 BlockPos n = p.relative(right, step[0]).above(step[1]);
-                if (members.containsKey(n) || !level.isLoaded(n) || !isWallTv(level.getBlockState(n), facing)) continue;
+                if (members.containsKey(n)) continue;
+                if (!level.isLoaded(n)) return false;
+                if (!isWallTv(level.getBlockState(n), facing)) continue;
                 if (members.size() >= MAX_MEMBERS) {
                     tooBig = true;
                     continue;
@@ -69,7 +72,11 @@ public final class TvWall {
         int width = maxX - minX + 1;
         int height = maxY - minY + 1;
         boolean wall = !tooBig && members.size() > 1 && members.size() == width * height
-                && width <= MAX_WIDTH && height <= MAX_HEIGHT;
+                && supportedSize(width, height);
+
+        for (BlockPos p : members.keySet()) {
+            if (!(level.getBlockEntity(p) instanceof TvBlockEntity)) return false;
+        }
 
         // Join (or split) the frames first; same block, so the block entities stay.
         for (Map.Entry<BlockPos, int[]> e : members.entrySet()) {
@@ -95,14 +102,22 @@ public final class TvWall {
             }
         }
         if (controller != null) controller.refreshPower();
+        return true;
     }
 
     /** After a TV is removed, regroup what is left on each side of it. */
     public static void recomputeAround(Level level, BlockPos removed, Direction facing) {
+        if (!(level instanceof net.minecraft.server.level.ServerLevel server)) return;
         Direction right = TvBlock.rightOf(facing);
         for (BlockPos n : new BlockPos[]{removed.relative(right), removed.relative(right.getOpposite()), removed.above(), removed.below()}) {
-            if (isWallTv(level.getBlockState(n), facing)) recompute(level, n);
+            if (level.isLoaded(n) && isWallTv(level.getBlockState(n), facing)) BigTvConverter.queueRegroup(server, n);
         }
+    }
+
+    /** Player-facing TV sizes: single, wide, large and large-wide. */
+    public static boolean supportedSize(int width, int height) {
+        return (width == 1 && height == 1) || (width == 2 && height == 1)
+                || (width == 2 && height == 2) || (width == 3 && height == 2);
     }
 
     /** Position of wall member (x, y) for a wall whose controller is at controller. */

@@ -2,6 +2,7 @@ package com.billyke2000s.moviehubtv.client;
 
 import com.billyke2000s.moviehubtv.MovieHubTV;
 import com.billyke2000s.moviehubtv.block.TvBlockEntity;
+import com.billyke2000s.moviehubtv.block.TvScreenLayout;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -119,7 +120,8 @@ final class TvVideoManager {
                     && mc.level.isLoaded(s.pos)
                     && mc.level.getBlockEntity(s.pos) instanceof TvBlockEntity tv
                     && tv.isOn() && tv.channelId().equals(s.channelId)
-                    && tv.isWallController(); // TVs joined into a wall play only through the wall's controller
+                    && tv.isWallController()
+                    && TvScreenLayout.resolve(mc.level, s.pos) != null;
             if (!keep) {
                 s.release();
                 it.remove();

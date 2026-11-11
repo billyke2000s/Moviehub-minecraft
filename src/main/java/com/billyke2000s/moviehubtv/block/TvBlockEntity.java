@@ -18,6 +18,7 @@ public class TvBlockEntity extends BlockEntity {
     public static final int ACTION_OPEN_GUIDE = 1;
     public static final int ACTION_CLOSE_GUIDE = 2;
     public static final int ACTION_TUNE = 3;
+    public static final int ACTION_REPAIR_LAYOUT = 4;
 
     private boolean on;
     private String channelId = "";
@@ -67,8 +68,8 @@ public class TvBlockEntity extends BlockEntity {
         if (!(level instanceof net.minecraft.server.level.ServerLevel server)) return;
         if (getBlockState().getBlock() instanceof BigTvBlock) {
             BigTvConverter.queue(server, worldPosition);
-        } else if (getBlockState().is(ModRegistry.TV.get()) && isWallController()) {
-            // Walls built before 0.5.2 have no joined-frame states yet; regrouping sets them.
+        } else if (getBlockState().is(ModRegistry.TV.get())) {
+            // Every member can repair the joined wall when its chunk loads.
             BigTvConverter.queueRegroup(server, worldPosition);
         }
     }
@@ -88,6 +89,13 @@ public class TvBlockEntity extends BlockEntity {
 
     /** Applies a remote or hand action. Server side only. */
     public void apply(int action, String channel) {
+        if (action == ACTION_REPAIR_LAYOUT || TvScreenLayout.resolve(level, worldPosition) == null) {
+            if (level instanceof net.minecraft.server.level.ServerLevel server) {
+                if (getBlockState().getBlock() instanceof BigTvBlock) BigTvConverter.queue(server, worldPosition);
+                else BigTvConverter.queueRegroup(server, worldPosition);
+            }
+            return;
+        }
         switch (action) {
             case ACTION_POWER -> {
                 on = !on;
@@ -109,14 +117,15 @@ public class TvBlockEntity extends BlockEntity {
     private void sync() {
         setChanged();
         if (level == null) return;
-        BlockState state = getBlockState();
+        BlockState state = level.getBlockState(worldPosition);
         if (inWall()) {
             Direction facing = state.getValue(TvBlock.FACING);
             for (int x = 0; x < wallW; x++) {
                 for (int y = 0; y < wallH; y++) {
                     BlockPos p = TvWall.memberPos(worldPosition, facing, x, y);
+                    if (!level.isLoaded(p)) continue;
                     BlockState s = level.getBlockState(p);
-                    if (s.getBlock() instanceof TvBlock && s.getValue(TvBlock.POWERED) != on) {
+                    if (s.is(ModRegistry.TV.get()) && s.getValue(TvBlock.FACING) == facing && s.getValue(TvBlock.POWERED) != on) {
                         level.setBlock(p, s.setValue(TvBlock.POWERED, on), Block.UPDATE_ALL);
                     }
                 }
@@ -150,7 +159,8 @@ public class TvBlockEntity extends BlockEntity {
         channelId = tag.getString("Channel");
         guideOpen = !tag.contains("Guide") || tag.getBoolean("Guide");
         int[] wall = tag.getIntArray("Wall");
-        if (wall.length == 4 && wall[2] >= 1 && wall[3] >= 1 && wall[2] <= TvWall.MAX_WIDTH && wall[3] <= TvWall.MAX_HEIGHT) {
+        if (wall.length == 4 && wall[2] >= 1 && wall[3] >= 1 && wall[2] <= TvWall.MAX_WIDTH && wall[3] <= TvWall.MAX_HEIGHT
+                && wall[0] >= 0 && wall[0] < wall[2] && wall[1] >= 0 && wall[1] < wall[3]) {
             wallX = wall[0]; wallY = wall[1]; wallW = wall[2]; wallH = wall[3];
         } else {
             wallX = 0; wallY = 0; wallW = 1; wallH = 1;

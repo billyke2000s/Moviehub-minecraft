@@ -1,5 +1,50 @@
 # Status
 
+## 0.5.8 — casing-aligned screen validation and automatic repair
+
+- Rendering and remote hit testing now resolve the same checked physical TV layout. Both take facing
+  from the actual world block state used by the casing model, rather than the block entity's cached
+  state. The renderer and cursor reject missing, unloaded, differently facing or inconsistent parts,
+  wrong frame pieces and unsupported dimensions. No oversized guide is projected into empty space
+  from unchecked saved width/height metadata.
+- Invalid visible layouts request a server-side regroup at most once per second within remote range.
+  Repair uses the existing deferred queue and preserves a complete valid controller's saved channel
+  and power. It does not guess a new facing or rotate existing blocks. Playback stops for invalid
+  layouts until their state is consistent. Empty-hand interaction uses the same validated controller.
+- Retains the 0.5.7 player-facing placement and sizes 1x1 / 2x1 / 2x2 / 3x2, along with the 0.5.6 load
+  safeguards. Both sides must use 0.5.8 because the repair action requires the new network version.
+- Verified locally: production placement, grouping, conversion and layout-validator classes compile
+  with JDK 21 against minimal Minecraft API stubs. Regression cases pass for all directions/sizes,
+  legacy layouts, missing chunks/entities, inconsistent dimensions/frame states and a saved 3x2
+  rectangle pointing perpendicular to its real blocks. Valid frame regrouping repairs the layout;
+  invalid geometry is rejected instead of drawing a floating screen. These are not in-game tests.
+- The previous full local build was blocked by policy on the NeoForge dependency host. The user has
+  explicitly authorized pushing the fixes to main for the GitHub Actions full build; result pending.
+- The live modpack's original cause (version mismatch, cached state or a rendering interaction) remains
+  unconfirmed. The screenshot has not been reproduced in-game; do not claim in-game verification.
+
+## 0.5.7 — requested placement and screen sizes
+
+- Normal TVs and legacy large TVs share player-facing placement using the actual player’s horizontal
+  direction rather than an overridden placement context. Non-player contexts fall back to their heading.
+- Supported joined sizes are 1×1, 2×1, 2×2 and 3×2 (1, 2, 4 and 6 TVs). Other rectangles and incomplete
+  arrangements stay separate. Existing joined-frame models are shared between powered and unpowered
+  states, and regrouping updates both frame pieces and the shared screen metadata.
+- Retains the 0.5.6 delayed-chunk conversion/regroup safeguards, per-member on-load repair, saved-offset
+  validation, unloaded-chunk power guards and server-stop queue cleanup. Network version requires 0.5.7
+  on both client and server, rejecting older builds that may interpret state differently.
+- Verified: `python3 tests/run_tv_regressions.py` with JDK 21 passes the actual production placement,
+  grouping and conversion classes against small Minecraft API stubs. Tests cover all four headings,
+  modified-context fallback, all requested sizes, joined frame metadata, unsupported shapes, delayed
+  loads, split/rejoin and saved migration state. All 128 model variants have expected compass rotation
+  and use identical assets when powered/unpowered. These are isolated tests, not in-game rendering tests.
+- Full build blocked: access to `https://maven.neoforged.net:443` was rejected by environment policy.
+  No installable 0.5.7 jar has been built. GitHub Actions requires publishing the source changes; the user subsequently authorized the push
+  to main for 0.5.8.
+- The exact cause of the reported one-direction behaviour in the live modpack is not reproduced.
+  Do not describe these changes as an in-game-verified fix or as proof that existing saved facings
+  are automatically corrected. No previously damaged legacy fragments are reconstructed.
+
 Version 0.5.5: TV walls regroup when loaded, so walls built before 0.5.2 get the joined frame. 0.5.4: battery recipe is copper/iron/redstone (plus shape); guide matches channels by name when IDs differ (149 -> 182 channels from the MovieHub guide, measured offline on the player's cached playlists and guide), and loads Free-TV's per-country guides (epgshare01, from the playlist header) on demand; their ID match is unverified. 0.5.3: Pluto guide comes straight from Pluto (/v2/guide/timelines, 20 channels per request, 24 h, like MovieHub) because the Moviehub-epg file's Pluto listings had stopped at 10 Nov 03:37. 0.5.2: TVs in a wall swap to frame pieces (wall_column/wall_row block states) so the wall looks like one TV even when off. 0.5.1: old crafted big TVs turn into normal TVs joined as a wall; wall regrouping now runs at the end of the tick (after the new TV's block entity exists). 0.5.0: TVs placed side by side join into one screen (up to 12x8); big-TV recipes removed. 0.4.2: hides Free-TV channels locked to other countries. 0.4.1: Pluto TV with session tokens, the same way as MovieHub's PlutoSource,, for the player's own region (0.3.0 added Free-TV, 0.2.0 big TVs).
 
 ## Verified

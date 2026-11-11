@@ -1,7 +1,6 @@
 package com.billyke2000s.moviehubtv.client;
 
 import com.billyke2000s.moviehubtv.block.TvBlock;
-import com.billyke2000s.moviehubtv.block.TvBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.core.BlockPos;
@@ -62,12 +61,6 @@ public final class ScreenGeometry {
     public static Screen screenFor(BlockState state) {
         if (state.getBlock() instanceof TvBlock tv) return screen(tv.widthBlocks(), tv.heightBlocks());
         return screen(1, 1);
-    }
-
-    /** The screen a TV draws: its wall's size when it is part of a TV wall. */
-    public static Screen screenFor(TvBlockEntity tv) {
-        if (tv.inWall()) return screen(tv.wallWidth(), tv.wallHeight());
-        return screenFor(tv.getBlockState());
     }
 
     /** Moves the pose from controller-block-local space onto the screen canvas (x right, y down, +z towards the viewer). */

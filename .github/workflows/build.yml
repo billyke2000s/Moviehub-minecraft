@@ -21,6 +21,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: TV placement and wall regression checks
+        run: python3 tests/run_tv_regressions.py
+
       - name: Build with Gradle
         run: |
           set -o pipefail

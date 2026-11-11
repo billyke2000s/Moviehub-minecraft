@@ -27,12 +27,26 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 | Remote | Any button, battery, iron ingot in a vertical column |
 
 
-**Bigger screens:** place normal TVs next to each other (all facing the same way). Any full
-rectangle of them, from 2x1 up to 12 wide by 8 tall, becomes one screen with one joined frame (even when switched off): e.g. 3x1 ultra-wide,
-4x3, 8x5. Shapes that aren't a full rectangle stay as separate TVs until you fill them in.
-The bottom-left TV (as you look at it) runs the wall; the remote and right-clicking work
-anywhere on it. Breaking a TV splits the wall; whatever rectangles are left rejoin.
-(The crafted Wide/Large TVs from 0.2.0 are no longer craftable. Since 0.5.1 any that are already placed, or placed from an inventory, turn into the same number of normal TVs joined as one screen, keeping power and channel.)
+**TV sizes:** place normal TVs with the screen facing you. Matching TVs that touch in the
+same plane join into one TV, including one outer frame when switched off:
+
+| TVs | Layout |
+| --- | --- |
+| 1 | 1 wide × 1 high |
+| 2 | 2 wide × 1 high |
+| 4 | 2 wide × 2 high |
+| 6 | 3 wide × 2 high |
+
+Place all parts while facing the same direction. The screen faces opposite your horizontal
+heading in all four compass directions, regardless of which block face you click.
+Incomplete shapes and other rectangles stay separate until a supported rectangle is complete.
+The bottom-left TV controls the joined screen. Old crafted big TVs convert to the equivalent
+normal-TV group when loaded, preserving facing, channel and power.
+
+Use the same 0.5.8 jar on the server and all clients, replacing older MovieHub jars and fully
+restarting both. Older builds are rejected by the compatibility handshake. The guide and remote use the actual casing’s facing and a validated footprint; inconsistent layouts
+request automatic server repair instead of projecting into empty space. Existing normal
+TV walls regroup when their chunks load; there is no new rotation tool or wall-face placement mode.
 
 ## Using it
 
@@ -67,6 +81,7 @@ anywhere on it. Breaking a TV splits the wall; whatever rectangles are left rejo
 
 ```sh
 ./gradlew build    # jar ends up in build/libs/
+python3 tests/run_tv_regressions.py  # JDK 21; isolated logic and model checks
 ```
 
 Every push to `main` is built by GitHub Actions and published as the `latest` pre-release.

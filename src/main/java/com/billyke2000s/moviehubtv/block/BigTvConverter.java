@@ -9,7 +9,10 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
 /**
  * Turns the old crafted big TVs (wide, large, large wide) into normal TVs joined as a TV wall.
@@ -24,48 +27,61 @@ public final class BigTvConverter {
 
     private record Pending(ServerLevel level, BlockPos pos) {}
 
-    private static final ConcurrentLinkedQueue<Pending> QUEUE = new ConcurrentLinkedQueue<>();
+    private static final Map<Pending, Long> QUEUE = new LinkedHashMap<>();
     /** TVs whose wall must be worked out again, once their block entities surely exist. */
-    private static final ConcurrentLinkedQueue<Pending> REGROUP = new ConcurrentLinkedQueue<>();
+    private static final Map<Pending, Long> REGROUP = new LinkedHashMap<>();
 
     /** True while parts are being swapped, so a big TV doesn't remove its other parts. */
     static boolean converting;
 
     static void queue(ServerLevel level, BlockPos controller) {
-        QUEUE.add(new Pending(level, controller.immutable()));
+        QUEUE.putIfAbsent(new Pending(level, controller.immutable()), level.getGameTime());
     }
 
     /** Regroups the TV wall at pos at the end of this server tick. */
     static void queueRegroup(ServerLevel level, BlockPos pos) {
-        REGROUP.add(new Pending(level, pos.immutable()));
+        REGROUP.putIfAbsent(new Pending(level, pos.immutable()), level.getGameTime());
     }
 
     public static void onServerTick(ServerTickEvent.Post event) {
-        Pending p;
-        while ((p = QUEUE.poll()) != null) {
+        process(QUEUE, true);
+        process(REGROUP, false);
+    }
+
+    private static void process(Map<Pending, Long> pending, boolean conversion) {
+        for (Pending p : List.copyOf(pending.keySet())) {
+            if (p.level().getGameTime() < pending.get(p)) continue;
+            pending.remove(p);
+            if (!p.level().isLoaded(p.pos())) continue;
             try {
-                convert(p.level(), p.pos());
+                boolean complete = conversion ? convert(p.level(), p.pos()) : TvWall.recompute(p.level(), p.pos());
+                if (!complete) pending.putIfAbsent(p, p.level().getGameTime() + 20);
             } catch (Exception e) {
-                MovieHubTV.LOGGER.warn("Could not convert big TV at {}", p.pos(), e);
-            }
-        }
-        java.util.Set<Pending> done = new java.util.HashSet<>();
-        while ((p = REGROUP.poll()) != null) {
-            if (!done.add(p) || !p.level().isLoaded(p.pos())) continue;
-            try {
-                TvWall.recompute(p.level(), p.pos());
-            } catch (Exception e) {
-                MovieHubTV.LOGGER.warn("Could not regroup TVs at {}", p.pos(), e);
+                MovieHubTV.LOGGER.warn("Could not {} TV at {}", conversion ? "convert" : "regroup", p.pos(), e);
             }
         }
     }
 
-    static void convert(ServerLevel level, BlockPos controller) {
-        if (!level.isLoaded(controller)) return;
+    public static void onServerStopped(ServerStoppedEvent event) {
+        QUEUE.clear();
+        REGROUP.clear();
+        converting = false;
+    }
+
+    static boolean convert(ServerLevel level, BlockPos controller) {
+        if (!level.isLoaded(controller)) return false;
         BlockState state = level.getBlockState(controller);
-        if (!(state.getBlock() instanceof BigTvBlock big)) return;
-        if (state.getValue(BigTvBlock.PART_X) != 0 || state.getValue(BigTvBlock.PART_Y) != 0) return;
+        if (!(state.getBlock() instanceof BigTvBlock big)) return true;
+        if (state.getValue(BigTvBlock.PART_X) != 0 || state.getValue(BigTvBlock.PART_Y) != 0) return true;
         Direction facing = state.getValue(TvBlock.FACING);
+
+        // Do not replace the controller until its complete legacy footprint is available.
+        for (int px = 0; px < big.widthBlocks(); px++) {
+            for (int py = 0; py < big.heightBlocks(); py++) {
+                if (!level.isLoaded(BigTvBlock.partPos(controller, facing, px, py))) return false;
+            }
+        }
+        if (!(level.getBlockEntity(controller) instanceof TvBlockEntity)) return false;
 
         boolean on = false, guide = true;
         String channel = "";
@@ -82,7 +98,6 @@ public final class BigTvConverter {
             for (int px = 0; px < big.widthBlocks(); px++) {
                 for (int py = 0; py < big.heightBlocks(); py++) {
                     BlockPos p = BigTvBlock.partPos(controller, facing, px, py);
-                    if (!level.isLoaded(p)) continue;
                     BlockState s = level.getBlockState(p);
                     if (s.is(big) && s.getValue(TvBlock.FACING) == facing
                             && s.getValue(BigTvBlock.PART_X) == px && s.getValue(BigTvBlock.PART_Y) == py) {
@@ -99,5 +114,6 @@ public final class BigTvConverter {
         }
         queueRegroup(level, controller);
         MovieHubTV.LOGGER.info("Turned a {}x{} big TV at {} into normal TVs", big.widthBlocks(), big.heightBlocks(), controller);
+        return true;
     }
 }

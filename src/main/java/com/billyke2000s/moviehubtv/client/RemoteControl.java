@@ -3,6 +3,7 @@ package com.billyke2000s.moviehubtv.client;
 import com.billyke2000s.moviehubtv.ModRegistry;
 import com.billyke2000s.moviehubtv.block.TvBlock;
 import com.billyke2000s.moviehubtv.block.TvBlockEntity;
+import com.billyke2000s.moviehubtv.block.TvScreenLayout;
 import com.billyke2000s.moviehubtv.network.TvActionPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -36,6 +37,18 @@ public final class RemoteControl {
     private static boolean useHeld;
     private static boolean attackHeld;
     private static long pressedAt;
+    private static long nextRepairAt;
+
+    /** At most one automatic repair request per second, only within normal remote range. */
+    static void requestLayoutRepair(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.player.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos))
+                > TvActionPayload.MAX_DISTANCE * TvActionPayload.MAX_DISTANCE) return;
+        long now = System.currentTimeMillis();
+        if (now < nextRepairAt) return;
+        nextRepairAt = now + 1000;
+        send(pos, TvBlockEntity.ACTION_REPAIR_LAYOUT, "");
+    }
 
     static Pointer pointer() {
         return pointer;
@@ -53,13 +66,19 @@ public final class RemoteControl {
         HitResult hit = mc.player.pick(RANGE, partialTick, false);
         if (!(hit instanceof BlockHitResult blockHit) || hit.getType() != HitResult.Type.BLOCK) return;
         BlockState state = mc.level.getBlockState(blockHit.getBlockPos());
-        if (!(state.getBlock() instanceof TvBlock tvBlock)) return;
-        Direction facing = state.getValue(TvBlock.FACING);
+        if (!(state.getBlock() instanceof TvBlock)) return;
+        TvScreenLayout.Layout layout = TvScreenLayout.resolve(mc.level, blockHit.getBlockPos());
+        if (layout == null) {
+            requestLayoutRepair(blockHit.getBlockPos());
+            return;
+        }
+        Direction facing = layout.facing();
         if (blockHit.getDirection() != facing) return;
         // Any part of a big TV points at its controller block, where the screen is drawn from.
-        BlockPos controller = tvBlock.controllerPos(mc.level, state, blockHit.getBlockPos());
-        if (!(mc.level.getBlockEntity(controller) instanceof TvBlockEntity controllerTv)) return;
-        float[] uv = ScreenGeometry.toCanvas(controller, facing, blockHit.getLocation(), ScreenGeometry.screenFor(controllerTv));
+        BlockPos controller = layout.controller();
+        if (!(mc.level.getBlockEntity(controller) instanceof TvBlockEntity)) return;
+        float[] uv = ScreenGeometry.toCanvas(controller, facing, blockHit.getLocation(),
+                ScreenGeometry.screen(layout.width(), layout.height()));
         if (uv == null) return;
         pointer = new Pointer(controller.immutable(), uv[0], uv[1]);
     }
@@ -114,7 +133,12 @@ public final class RemoteControl {
             send(p.pos(), TvBlockEntity.ACTION_OPEN_GUIDE, "");
             return;
         }
-        ScreenGeometry.Screen screen = ScreenGeometry.screenFor(tv);
+        TvScreenLayout.Layout layout = TvScreenLayout.resolve(Minecraft.getInstance().level, p.pos());
+        if (layout == null) {
+            requestLayoutRepair(p.pos());
+            return;
+        }
+        ScreenGeometry.Screen screen = ScreenGeometry.screen(layout.width(), layout.height());
         GuideRenderer.Hit hit = GuideRenderer.hit(p.pos(), tv, screen.toGuideU(p.u()), screen.toGuideV(p.v()));
         switch (hit.target()) {
             case ROW -> send(p.pos(), TvBlockEntity.ACTION_TUNE, ChannelRepository.channels().get(hit.channelIndex()).id());

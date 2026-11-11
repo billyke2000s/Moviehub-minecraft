@@ -83,7 +83,7 @@ public class BigTvBlock extends TvBlock {
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
-        Direction facing = context.getHorizontalDirection().getOpposite();
+        Direction facing = TvPlacement.facing(context);
         Level level = context.getLevel();
         BlockPos origin = context.getClickedPos();
         for (int px = 0; px < width; px++) {
@@ -136,6 +136,7 @@ public class BigTvBlock extends TvBlock {
         for (int px = 0; px < width; px++) {
             for (int py = 0; py < height; py++) {
                 BlockPos p = partPos(controller, facing, px, py);
+                if (!level.isLoaded(p)) continue;
                 BlockState s = level.getBlockState(p);
                 if (s.is(this) && s.getValue(POWERED) != powered) {
                     level.setBlock(p, s.setValue(POWERED, powered), Block.UPDATE_ALL);

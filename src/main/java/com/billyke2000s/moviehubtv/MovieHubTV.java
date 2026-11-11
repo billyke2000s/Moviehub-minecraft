@@ -17,6 +17,7 @@ public final class MovieHubTV {
         ModRegistry.register(modBus);
         modBus.addListener(TvActionPayload::register);
         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(com.billyke2000s.moviehubtv.block.BigTvConverter::onServerTick);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(com.billyke2000s.moviehubtv.block.BigTvConverter::onServerStopped);
     }
 
     public static ResourceLocation id(String path) {

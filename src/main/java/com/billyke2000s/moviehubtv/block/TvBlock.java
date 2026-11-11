@@ -75,7 +75,12 @@ public class TvBlock extends HorizontalDirectionalBlock implements EntityBlock {
 
     /** As above, but also follows a TV wall made of separate TVs to its controller. */
     public BlockPos controllerPos(BlockGetter level, BlockState state, BlockPos pos) {
-        if (level.getBlockEntity(pos) instanceof TvBlockEntity tv && tv.inWall()) return tv.controllerPos();
+        if (level instanceof Level world) {
+            TvScreenLayout.Layout layout = TvScreenLayout.resolve(world, pos);
+            // A click on stale metadata repairs this block instead of acting on an unrelated position.
+            if (layout != null) return layout.controller();
+            if (state.is(com.billyke2000s.moviehubtv.ModRegistry.TV.get())) return pos;
+        }
         return controllerPos(state, pos);
     }
 
@@ -84,7 +89,7 @@ public class TvBlock extends HorizontalDirectionalBlock implements EntityBlock {
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        return defaultBlockState().setValue(FACING, TvPlacement.facing(context));
     }
 
     @Override
