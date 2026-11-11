@@ -81,10 +81,11 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 sourceSets.main.resources.srcDir generateModMetadata
 var engineBundle = tasks.register('bundleMovieHubEngine', Zip) {
     def upstream = layout.projectDirectory.dir('upstream-moviehub/android-tv-launcher/app/src/main')
+    def packages = layout.buildDirectory.dir('engine-packages')
     from(upstream.dir('python'))
     from(upstream.dir('assets/licenses/vod')) { into 'licenses' }
     from('src/engine')
-    from(layout.buildDirectory.dir('engine-packages')) { into 'packages' }
+    from(packages) { into 'packages' }
     exclude '**/__pycache__/**', '**/*.pyc'
     archiveFileName = 'moviehub-engine.zip'
     destinationDirectory = layout.buildDirectory.dir('generated/engine')
@@ -92,7 +93,7 @@ var engineBundle = tasks.register('bundleMovieHubEngine', Zip) {
         if (!upstream.file('python/moviehub_vod.py').asFile.exists()) {
             throw new GradleException('Checkout pinned MovieHub source in upstream-moviehub before building; see README.md')
         }
-        if (!layout.buildDirectory.file('engine-packages/requests/__init__.py').get().asFile.exists()) {
+        if (!packages.get().file('requests/__init__.py').asFile.exists()) {
             throw new GradleException('Collect the portable Python dependencies in build/engine-packages before building; see CI workflow')
         }
     }
