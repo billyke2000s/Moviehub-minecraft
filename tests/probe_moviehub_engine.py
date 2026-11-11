@@ -12,7 +12,7 @@ with contextlib.redirect_stdout(sys.stderr):
 spec = importlib.util.spec_from_file_location('worker', root / 'src/engine/moviehub_worker.py')
 worker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(worker)
-sites = [p for p in json.loads(engine.search_providers()) if p['id'] in ('native:rive', 'native:movy', 'free99:levidia_ch')]
+sites = [p for p in json.loads(engine.search_providers()) if p['movies']]
 engine.search_providers = lambda include_retired=False: json.dumps(sites)
 found = []
 def safe_log(event):
@@ -23,7 +23,7 @@ def safe_log(event):
         print(event['provider'], event['status'], flush=True)
 worker.emit = safe_log
 worker.run(engine, dict(title='Night of the Living Dead', year='1968', imdb='tt0063350', tmdb=10331,
-                        season=-1, episode=-1, http=False), budget=60)
+                        season=-1, episode=-1, http=False), budget=90)
 print('Real MovieHub providers checked:', len(sites), 'validated sources returned:', len(found))
 if not found:
     raise SystemExit(2)

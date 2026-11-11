@@ -250,7 +250,8 @@ final class GuideRenderer {
             c.text(c.fit(TmdbBrowser.text(item, "title"), w - 52, 0.75f), 27, y + 3, 1, 0.75f, WHITE);
             c.text(c.fit(TmdbBrowser.text(item, "subtitle"), w - 34, 0.6f), 27, y + 13, 1, 0.6f, GOLD);
             c.text(c.fit(TmdbBrowser.text(item, "overview"), w - 34, 0.55f), 27, y + 21, 1, 0.55f, SUB);
-            c.textRight(TmdbBrowser.text(item, "kind").equals("source") ? "Play" : ">", l.rowRight() - 4, y + 3, 1, 0.65f, GOLD);
+            String kind = TmdbBrowser.text(item, "kind");
+            c.textRight(kind.equals("source") ? "Play" : kind.equals("provider") ? "..." : ">", l.rowRight() - 4, y + 3, 1, 0.65f, GOLD);
             if (over) c.outline(GuideLayout.CH_X - 1, y - 1, w + 2, TmdbBrowser.HEIGHT + 2, 1.2f, GOLD);
         }
     }

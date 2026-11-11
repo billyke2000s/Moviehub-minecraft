@@ -134,6 +134,12 @@ tasks.register('mediaRelayRegression', JavaExec) {
     mainClass = 'com.billyke2000s.moviehubtv.client.MediaRelayRegression'
 }
 tasks.named('check') { dependsOn 'mediaRelayRegression' }
+tasks.register('engineBridgeRegression', JavaExec) {
+    dependsOn regressionClasses, processResources
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'com.billyke2000s.moviehubtv.catalogue.EngineBridgeRegression'
+}
+tasks.named('check') { dependsOn 'engineBridgeRegression' }
 tasks.register('freeVodProbe', JavaExec) {
     dependsOn regressionClasses
     classpath = sourceSets.regression.runtimeClasspath

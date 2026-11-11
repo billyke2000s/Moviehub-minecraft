@@ -10,6 +10,7 @@ final class TmdbBrowser {
     int scroll, page = 1, pages = 1, id, season, generation;
     String route = "", query = "", status = "";
     boolean loading;
+    boolean sourcesFound;
     private final Deque<Frame> history = new ArrayDeque<>();
     private record Frame(List<JsonObject> items, int scroll, int page, int pages, int id, int season,
                          String route, String query, String status) {}
@@ -21,7 +22,7 @@ final class TmdbBrowser {
     private void request(String next, int selected, int seasonNumber, int pageNumber, String search, boolean remember) {
         if (remember) history.push(new Frame(List.copyOf(items), scroll, page, pages, id, season, route, query, status));
         route = next; id = selected; season = seasonNumber; page = pageNumber; query = search;
-        items = new ArrayList<>(); scroll = 0; pages = 1; loading = true;
+        items = new ArrayList<>(); scroll = 0; pages = 1; loading = true; sourcesFound = false;
         status = next.equals("resolve") ? "Starting MovieHub's free-source search..." : "Loading TMDB...";
         int version = ++generation;
         CatalogueClient.request(next, selected, seasonNumber, pageNumber, search, data -> {
@@ -29,14 +30,29 @@ final class TmdbBrowser {
             loading = data.has("more") && data.get("more").getAsBoolean();
             if (data.has("error")) { status = text(data, "error"); return; }
             if (data.has("status")) status = text(data, "status");
-            if (data.has("source")) items.add(data.getAsJsonObject("source"));
+            if (data.has("providers")) {
+                for (JsonElement e : data.getAsJsonArray("providers")) {
+                    JsonObject service = new JsonObject();
+                    service.addProperty("kind", "provider"); service.addProperty("title", e.getAsString());
+                    service.addProperty("subtitle", "Searching..."); service.addProperty("poster", text(data, "poster"));
+                    items.add(service);
+                }
+            }
+            if (data.has("provider") && !sourcesFound) {
+                for (JsonObject service : items) if (text(service, "title").equals(text(data, "provider")))
+                    service.addProperty("subtitle", text(data, "providerStatus"));
+            }
+            if (data.has("source")) {
+                if (!sourcesFound) { items.clear(); scroll = 0; sourcesFound = true; }
+                items.add(data.getAsJsonObject("source"));
+            }
             if (data.has("items")) {
                 items = new ArrayList<>();
                 for (JsonElement e : data.getAsJsonArray("items")) if (e.isJsonObject()) items.add(e.getAsJsonObject());
                 pages = integer(data, "pages", 1);
                 status = items.isEmpty() ? "No TMDB results" : "TMDB - page " + page + " / " + pages;
             }
-            if (!loading && route.equals("resolve") && items.isEmpty() && !data.has("error"))
+            if (!loading && route.equals("resolve") && !sourcesFound && !data.has("error"))
                 status = "No playable sources returned by MovieHub's free services";
         });
     }
@@ -44,6 +60,7 @@ final class TmdbBrowser {
         if (index < 0 || index >= items.size()) return null;
         JsonObject item = items.get(index);
         String kind = text(item, "kind");
+        if (kind.equals("provider")) { status = text(item, "title") + ": " + text(item, "subtitle"); return null; }
         int selected = integer(item, "id", 0);
         if (kind.equals("source")) return text(item, "play");
         if (kind.equals("tv")) request("seasons", selected, 0, 1, "", true);

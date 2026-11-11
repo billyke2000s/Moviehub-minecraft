@@ -73,8 +73,12 @@ public final class CatalogueService {
                                 out.add("source", item);
                             } catch (Exception ignored) { return; }
                         } else if (type.equals("inventory")) {
+                            out.add("providers", event.getAsJsonArray("providers"));
+                            out.addProperty("poster", TmdbGateway.text(info, "poster"));
                             out.addProperty("status", "Searching " + event.getAsJsonArray("providers").size() + " MovieHub free services...");
                         } else if (type.equals("provider")) {
+                            out.addProperty("provider", TmdbGateway.text(event, "provider"));
+                            out.addProperty("providerStatus", TmdbGateway.text(event, "status"));
                             out.addProperty("status", TmdbGateway.text(event, "provider") + ": " + TmdbGateway.text(event, "status"));
                         } else if (type.equals("error")) {
                             out.addProperty("error", "MovieHub resolver error: " + TmdbGateway.text(event, "error"));

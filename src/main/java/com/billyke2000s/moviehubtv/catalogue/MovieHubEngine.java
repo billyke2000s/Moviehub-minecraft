@@ -22,8 +22,10 @@ public final class MovieHubEngine {
     private static Path root;
     private static String python;
     private static synchronized void prepare() throws Exception {
+        prepare(FMLPaths.CONFIGDIR.get().resolve("moviehubtv-engine-0.10.0").toAbsolutePath(), ServerConfig.get(ServerConfig.PYTHON, "").trim());
+    }
+    private static synchronized void prepare(Path dir, String configured) throws Exception {
         if (root != null && python != null) return;
-        Path dir = FMLPaths.CONFIGDIR.get().resolve("moviehubtv-engine-0.10.0").toAbsolutePath();
         Files.createDirectories(dir);
         if (!Files.exists(dir.resolve("ready"))) {
             try (InputStream resource = MovieHubEngine.class.getResourceAsStream("/moviehub-engine.zip")) {
@@ -47,7 +49,6 @@ public final class MovieHubEngine {
             }
             Files.writeString(dir.resolve("ready"), "MovieHub 08343545afd7b535f8c9112f818ad60ee4432bd4");
         }
-        String configured = ServerConfig.get(ServerConfig.PYTHON, "").trim();
         List<String> candidates = configured.isEmpty() ? List.of("python3", "python") : List.of(configured);
         String found = null;
         for (String candidate : candidates) {
@@ -66,6 +67,17 @@ public final class MovieHubEngine {
             throw new IOException("Bundled MovieHub Python packages could not load. Reinstall the 0.10.0 jar and use Python 3.10+");
         }
         root = dir; python = found;
+    }
+    /** Headless inventory diagnostics also exercise jar extraction and the real Java/Python process boundary. */
+    static JsonObject inventory(Path directory) throws Exception {
+        prepare(directory.toAbsolutePath(), "");
+        Process process = builder(python, root, "-u", "moviehub_worker.py", "--inventory").start();
+        try (var reader = process.inputReader(StandardCharsets.UTF_8)) {
+            String line = reader.readLine();
+            if (!process.waitFor(30, TimeUnit.SECONDS) || process.exitValue() != 0 || line == null)
+                throw new IOException("Engine inventory failed");
+            return JsonParser.parseString(line).getAsJsonObject();
+        } finally { process.destroyForcibly(); }
     }
     private static ProcessBuilder builder(String executable, Path dir, String... args) {
         List<String> command = new ArrayList<>(); command.add(executable); command.addAll(List.of(args));
