@@ -50,7 +50,7 @@ final class VodRepository {
         int gen = generation;
         WORK.execute(() -> {
             try {
-                var found = VodCatalogue.episodes(PlutoClient.vodGet("/v3/vod/series/" + item.id() + "/seasons"), item);
+                var found = VodCatalogue.episodes(PlutoClient.vodGet("/v3/vod/series/" + item.id() + "/seasons?includeItems=true&deviceType=web"), item);
                 if (gen == generation) EPISODES.put(item.id(), found);
             } catch (Exception e) {
                 if (gen == generation) RETRY.put(item.id(), System.currentTimeMillis() + 30000);

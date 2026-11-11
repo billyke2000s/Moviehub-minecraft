@@ -8,13 +8,16 @@ public final class FreeVodRegression {
         var items = VodCatalogue.catalogue("""
                 {"categories":[
                   {"name":"Films","items":[
-                    {"_id":"111111111111111111111111","name":"A Film","type":"movie","summary":"A story"},
+                    {"_id":"111111111111111111111111","name":"A Film","type":"movie","summary":"A story",
+                     "stitched":{"urls":[{"url":"https://service-stitcher.clusters.pluto.tv/stitch/hls/episode/aaaaaaaaaaaaaaaaaaaaaaaa/master.m3u8?oldToken=1"}]}},
                     {"_id":"bad","name":"Invalid","type":"movie"},
                     {"_id":"333333333333333333333333","name":"Office","type":"movie","plutoOfficeOnly":true},
                     {"_id":"444444444444444444444444","name":"Unplayable trailer","type":"clip"}]},
                   {"name":"Shows","items":[{"_id":"222222222222222222222222","name":"A Show","type":"series"}]},
                   {"name":"Anime","items":[{"_id":"222222222222222222222222","name":"A Show","type":"series"}]},
-                  {"name":"Kids animation","items":[{"_id":"555555555555555555555555","name":"Cartoon","type":"movie"}]}
+                  {"name":"Kids animation","items":[{"_id":"555555555555555555555555","name":"Cartoon","type":"movie",
+                    "stitched":{"urls":[{"url":"https://service-stitcher.clusters.pluto.tv/stitch/hls/episode/555555555555555555555555/master.m3u8"}]}}]},
+                  {"name":"Unavailable","items":[{"_id":"999999999999999999999999","name":"No video","type":"movie"}]}
                 ]}
                 """);
         check(items.size() == 3, "Deduplicate carousel titles; omit invalid IDs, office-only entries and clips");
@@ -23,8 +26,10 @@ public final class FreeVodRegression {
         check(!items.get(2).anime(), "Generic children's animation is not automatically anime");
         check(items.get(0).summary().equals("A story"), "Retain provider synopsis");
         var episodes = VodCatalogue.episodes("""
-                [{"number":2,"episodes":[{"_id":"666666666666666666666666","name":"Later","number":3}]},
-                 {"number":1,"episodes":[{"_id":"777777777777777777777777","name":"First","number":1},
+                [{"number":2,"episodes":[{"_id":"666666666666666666666666","name":"Later","number":3,
+                   "stitched":{"urls":[{"url":"https://service-stitcher.clusters.pluto.tv/stitch/hls/episode/666666666666666666666666/master.m3u8"}]}}]},
+                 {"number":1,"episodes":[{"_id":"777777777777777777777777","name":"First","number":1,
+                   "stitched":{"urls":[{"url":"https://service-stitcher.clusters.pluto.tv/stitch/hls/episode/777777777777777777777777/master.m3u8"}]}},
                   {"_id":"bad","name":"Broken","number":2}]}]
                 """, show);
         check(episodes.size() == 2 && episodes.get(0).season() == 1 && episodes.get(1).episode() == 3,
@@ -33,6 +38,8 @@ public final class FreeVodRegression {
         check(VodCatalogue.episodes("{\"seasons\":[]}", show).isEmpty(), "Empty regional seasons are supported");
         check(VodCatalogue.normal("Pokémon!").equals(VodCatalogue.normal("Pokemon")), "TMDB title matching handles accents");
         check(items.get(0).id().equals(movie), "Preserve provider identity across tabs");
+        check(items.get(0).playbackId().startsWith("vod:pluto:aaaaaaaaaaaaaaaaaaaaaaaa|"),
+                "Movie uses the actual provider episode ID, not its metadata ID or an expired token");
         System.out.println("PASS: free movies, shows, anime classification, episodes, locators and title matching");
     }
 }

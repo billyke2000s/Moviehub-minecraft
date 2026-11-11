@@ -42,6 +42,10 @@ jobs:
           path: build/libs/*.jar
           if-no-files-found: error
 
+      - name: Free on-demand provider smoke check (runner region)
+        continue-on-error: true
+        run: python3 tests/probe_free_vod.py
+
       - name: Publish latest jar as a release
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
@@ -89,3 +93,4 @@ jobs:
             Built by GitHub Actions from ${{ github.sha }}. See [STATUS.md](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/STATUS.md) for changes and what has and has not been tested in-game.
     permissions:
       contents: write
+
