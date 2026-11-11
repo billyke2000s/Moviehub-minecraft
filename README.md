@@ -62,6 +62,25 @@ TV walls regroup when their chunks load; there is no new rotation tool or wall-f
 
 ## Using it
 
+- The existing top bar now has **Live TV | Movies | Shows | Anime**. Live TV keeps the guide and
+  categories below it. The other tabs show free Pluto on-demand titles available in your region;
+  pick a show to list its episodes, or pick a film/episode to play it. Anime is limited to titles
+  Pluto identifies as anime. These tabs need no subscription, provider account or TMDB key.
+- **Search** in a movie/show/anime tab filters the free catalogue by title. Clear the search to show
+  all titles again. The player keeps its existing blue popup: aim the remote to show **-10s**, **Play /
+  Pause**, **+10s**, and **Guide**. On-demand pause/seek is shared TV state; live channels retain their
+  existing controls. Provider ad breaks and regional availability still apply.
+- Optional **TMDB ID lookup**: on the machine hosting the world, set `tmdbKey = "..."` in
+  `config/moviehubtv-common.toml` to a TMDB API key or API Read Access Token, then restart the host.
+  Players do not enter a key and never receive it. In Search, enter `tmdb:movie:550` or
+  `tmdb:tv:1399`. The title must also exist in your free regional catalogue to play; a TMDB ID alone
+  does not supply video. This product uses the TMDB API but is not endorsed or certified by TMDB.
+- **Extra free channels**: Android MovieHub's public iptv-org list now loads by default alongside
+  the existing sources (`movieHubFreeChannels = true` in the client config). For a public M3U export
+  of your own free lineup, the host can set `channelPlaylists = ["https://..."]` in
+  `config/moviehubtv-common.toml`; every client loads it. Those playlist URLs are shared with players.
+  This does not port all Android provider adapters; see STATUS.md for the exact limits.
+
 - **Right-click the TV** (without the remote) to turn it on or off.
 - Turning it on goes straight to the **TV guide**: channel number and name, what's on now,
   what's next, and a progress bar. The guide fills the whole screen; wide TVs show **Now**,
@@ -112,3 +131,4 @@ stable release tagged `v<mod_version>`; bump `mod_version` to release a new vers
 ## Status
 
 See [STATUS.md](STATUS.md).
+

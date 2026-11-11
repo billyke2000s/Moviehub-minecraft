@@ -67,13 +67,17 @@ final class PlutoClient {
      * fetched (call again next frame). Never blocks.
      */
     static String streamUrl(String channelId) {
+        return streamUrl(channelId, false);
+    }
+
+    static String streamUrl(String channelId, boolean vod) {
         long now = System.currentTimeMillis();
         Session s = session;
         if (s == null || now > s.expiresAt() - RENEW_MARGIN_MS) bootInBackground();
         if (s == null || now > s.expiresAt()) return null;
         if (!isPlutoId(channelId)) return null;
         StringBuilder url = new StringBuilder(s.stitcher())
-                .append("/v2/stitch/hls/channel/").append(channelId).append("/master.m3u8?");
+                .append(vod ? "/v2/stitch/hls/episode/" : "/v2/stitch/hls/channel/").append(channelId).append("/master.m3u8?");
         if (!s.stitcherParams().isEmpty()) url.append(s.stitcherParams()).append('&');
         url.append("jwt=").append(URLEncoder.encode(s.token(), StandardCharsets.UTF_8))
                 .append("&masterJWTPassthrough=true");
@@ -226,4 +230,33 @@ final class PlutoClient {
     }
 
     static HttpClient http() { return HTTP; }
+
+    /** Anonymous free VOD catalogue; uses the same region and session as live Pluto. */
+    static String vodGet(String path) throws Exception {
+        if (!path.startsWith("/v3/vod/")) throw new IllegalArgumentException();
+        Session s = session;
+        if (s == null || System.currentTimeMillis() > s.expiresAt() - RENEW_MARGIN_MS) {
+            s = boot(); session = s;
+        }
+        return get("https://api.pluto.tv" + path, s.token());
+    }
+
+    /** The API returns 100 categories per page. Fetch every page instead of silently showing page one. */
+    static String fetchVodCatalogue() throws Exception {
+        String route = "/v3/vod/categories?includeItems=true&deviceType=web";
+        JsonObject first = JsonParser.parseString(vodGet(route)).getAsJsonObject();
+        int pages = first.has("totalPages") ? first.get("totalPages").getAsInt() : 1;
+        if (pages > 20) throw new IllegalStateException("Unexpectedly large free catalogue");
+        JsonArray combined = VodCatalogue.array(first, "categories");
+        for (int page = 2; page <= pages; page++) {
+            JsonObject next = JsonParser.parseString(vodGet(route + "&page=" + page)).getAsJsonObject();
+            if (next.has("page") && next.get("page").getAsInt() != page)
+                throw new IllegalStateException("Provider returned an incomplete catalogue page");
+            JsonArray categories = VodCatalogue.array(next, "categories");
+            if (categories.isEmpty()) throw new IllegalStateException("Provider returned an empty catalogue page");
+            combined.addAll(categories);
+        }
+        first.add("categories", combined);
+        return first.toString();
+    }
 }

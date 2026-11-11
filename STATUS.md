@@ -1,16 +1,43 @@
 # Status
 
-## 0.8.1 — guide opens on categories
+## 0.9.0 �?" free Movies / Shows / Anime tabs
+
+- Existing on-TV blue guide, channel categories, remote cursor and player information banner retained.
+  The top bar now has Live TV, Movies, Shows and Anime. Movies and Shows browse Pluto's regional
+  free on-demand catalogue; a show opens its episodes. Anime uses Pluto's Anime category/genre,
+  not all children's animation. Availability depends on the player's real region.
+- Title search is in the footer. Optional `tmdb:movie:ID` / `tmdb:tv:ID` lookup uses a key/read token
+  stored only in the host's `config/moviehubtv-common.toml`. It matches the result against the free
+  Pluto catalogue; TMDB does not provide videos. Free browsing requires no TMDB key or account.
+- Free on-demand playback uses the existing WATERMeDIA player, with -10s / Play-Pause / +10s / Guide
+  controls inside the existing blue banner. Pause and seek state is server-owned. No paid-provider
+  setup, debrid account or subscription has been added.
+- Live TV additionally imports the public iptv-org list used by Android MovieHub (enabled by default
+  through a separate setting, including for existing installations). Public additional M3U URLs can
+  be set once on the host via `channelPlaylists`; clients receive those URLs, never the TMDB key.
+- Full Android source parity is NOT established: Android's provider-engine adapters, authenticated
+  accounts and site-specific free-VOD resolver runtime are not ported by this change. Native Samsung,
+  Plex, Roku, etc. still do not have dedicated adapters in the mod; some channels can appear in the
+  public lists. Do not claim every Android channel or movie is present or playable.
+- Verified: offline production-parser fixtures and the existing TV regression suite pass; full
+  GitHub Actions compilation passes. The production Java provider code fetched all 373 categories
+  across four pages in the US runner and parsed 8,135 movies, 3,826 shows and 312 anime entries
+  (anime overlaps movies/shows). A selected movie returned an HLS manifest, and a sample show
+  returned 62 playable episodes. Popup hit targets are checked at every supported screen width.
+  These counts are regional and can change. No in-game or UK playback is claimed.
+- Protocol `tv-0.9.0`: update the server and every client together.
+
+## 0.8.1 �?" guide opens on categories
 
 - The guide first opens on the category list (All channels first) for each TV on each client; after
   that it reopens wherever the player left it (category list, or a category's channels and page).
   State is in memory only, so it starts on the category list again after restarting the game.
 - Verified: regression script and GitHub Actions build. Not tested in-game.
 
-## 0.8.0 — guide categories and full-width guide
+## 0.8.0 �?" guide categories and full-width guide
 
 - The guide fills the screen width (canvas 160 tall, at least 192 wide): 1x1 = 192, 2x2 = 192 (shrunk),
-  3x2 ≈ 271 (Now + Next columns), 2x1 = 448 (Now, Next, Later). Narrow screens keep the now/next cell.
+  3x2 �%^ 271 (Now + Next columns), 2x1 = 448 (Now, Next, Later). Narrow screens keep the now/next cell.
   `GuideLayout` holds the positions; rendering and the remote's hit test both use it.
 - Categories button: All channels, keyword genres, Pluto TV, UK, then playlist groups A-Z, built by
   `ChannelCategories` when channels load; empty ones hidden. Channel records now keep their playlist
@@ -22,14 +49,14 @@
   News 172, Sport 44, Movies 32, Kids 28, UK 48). Full build: GitHub Actions. Not tested in-game: how
   the wider guide and columns look and read, category picking with the remote.
 
-## 0.7.2 — only tuned speakers work
+## 0.7.2 �?" only tuned speakers work
 
 - Removed nearest-TV linking: a speaker plays a TV only if it was tuned by right-clicking that TV with
   the speaker item before placing. Untuned speakers stay silent and say so; empty-hand right-click only
   reports the linked TV. Breaking a speaker drops an untuned speaker (tune it again before re-placing).
 - Verified: regression script and GitHub Actions build. Not tested in-game.
 
-## 0.7.1 — tune speakers to a chosen TV
+## 0.7.1 �?" tune speakers to a chosen TV
 
 - Right-clicking a TV with a speaker stack stores that TV (position + dimension) on the stack; placing a
   tuned speaker links it to that TV if it still exists in the same dimension within 48 blocks, otherwise it
@@ -37,7 +64,7 @@
   speakers keep the 0.7.0 nearest-TV rule. Same network version as 0.7.0 (`tv-0.7.0`).
 - Verified: regression script and GitHub Actions build. Not tested in-game.
 
-## 0.7.0 — TV volume and linked speakers (replaces 0.6.0's speaker behaviour)
+## 0.7.0 �?" TV volume and linked speakers (replaces 0.6.0's speaker behaviour)
 
 - Each TV has its own saved volume (0-100, default 80, steps of 5), changed with the remote's scroll
   wheel while watching, or sneak + scroll while the guide is open. It is server state, so everyone hears
@@ -52,12 +79,12 @@
   WATERMeDIA/VLC, speaker links after a TV wall regroups or a linked TV is broken (the speaker then needs
   an empty-hand right-click to relink).
 
-## 0.6.0 — first speakers (superseded)
+## 0.6.0 �?" first speakers (superseded)
 
 - Released 11 Nov 2026 but never installed on the server: speakers within 8 blocks boosted volume
   (+5 each) and range (+50% each, max 4). Replaced by 0.7.0.
 
-## 0.5.8 — casing-aligned screen validation and automatic repair
+## 0.5.8 �?" casing-aligned screen validation and automatic repair
 
 - Rendering and remote hit testing now resolve the same checked physical TV layout. Both take facing
   from the actual world block state used by the casing model, rather than the block entity's cached
@@ -80,11 +107,11 @@
 - The live modpack's original cause (version mismatch, cached state or a rendering interaction) remains
   unconfirmed. The screenshot has not been reproduced in-game; do not claim in-game verification.
 
-## 0.5.7 — requested placement and screen sizes
+## 0.5.7 �?" requested placement and screen sizes
 
-- Normal TVs and legacy large TVs share player-facing placement using the actual player’s horizontal
+- Normal TVs and legacy large TVs share player-facing placement using the actual player�?Ts horizontal
   direction rather than an overridden placement context. Non-player contexts fall back to their heading.
-- Supported joined sizes are 1×1, 2×1, 2×2 and 3×2 (1, 2, 4 and 6 TVs). Other rectangles and incomplete
+- Supported joined sizes are 1�-1, 2�-1, 2�-2 and 3�-2 (1, 2, 4 and 6 TVs). Other rectangles and incomplete
   arrangements stay separate. Existing joined-frame models are shared between powered and unpowered
   states, and regrouping updates both frame pieces and the shared screen metadata.
 - Retains the 0.5.6 delayed-chunk conversion/regroup safeguards, per-member on-load repair, saved-offset
@@ -144,7 +171,7 @@ Version 0.5.5: TV walls regroup when loaded, so walls built before 0.5.2 get the
 
 - Big TVs only come in 2x1, 2x2 and 3x2; they show the guide centred at its normal shape.
 - No channel logos in the guide.
-- With over 2,000 channels the guide is long; ▲/▼ move a page of 7 at a time.
+- With over 2,000 channels the guide is long; �-�/�-� move a page of 7 at a time.
 - Samsung TV Plus, Plex, Roku and the other services MovieHub's Android app adapts are not included.
 - While the guide is open over a tuned channel, the sound keeps playing but the picture is hidden.
 - The guide is drawn on the block itself, so it is small; read it close up.

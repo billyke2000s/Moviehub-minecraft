@@ -84,8 +84,22 @@ public final class ChannelRepository {
     public static List<Channel> channels() { return channels; }
     /** Guide categories; their indices point into {@link #channels()}. "All channels" is first. */
     public static List<ChannelCategories.Category> categories() { return categories; }
-    public static Channel channel(String id) { return byId.get(id); }
+    public static Channel channel(String id) {
+        if (id != null && id.startsWith("vod:pluto:")) {
+            String[] parts = id.substring(10).split("\\|", 2);
+            if (parts.length == 2 && VodCatalogue.validId(parts[0]))
+                return new Channel(0, id, parts[1], "pluto-vod:" + parts[0], "Free on demand", "");
+        }
+        return byId.get(id);
+    }
     public static String status() { return status; }
+
+    private static volatile List<String> serverPlaylists = List.of();
+    static void serverPlaylists(List<String> urls) {
+        List<String> safe = urls.stream().filter(u -> u.startsWith("https://") && u.length() <= 2048).limit(20).toList();
+        if (safe.equals(serverPlaylists)) return;
+        serverPlaylists = safe; lastLoad = 0;
+    }
 
     /** Starts (or refreshes) loading in the background. Cheap to call every frame. */
     public static void ensureLoaded() {
@@ -156,7 +170,9 @@ public final class ChannelRepository {
             Files.createDirectories(cache);
 
             String[] urls = (ClientConfig.get(ClientConfig.PLAYLISTS, ClientConfig.DEFAULT_PLAYLISTS) + ","
-                    + ClientConfig.get(ClientConfig.EXTRA_PLAYLISTS, ClientConfig.DEFAULT_EXTRA_PLAYLISTS)).split(",");
+                    + ClientConfig.get(ClientConfig.EXTRA_PLAYLISTS, ClientConfig.DEFAULT_EXTRA_PLAYLISTS) + ","
+                    + (ClientConfig.get(ClientConfig.MOVIEHUB_FREE_CHANNELS, true) ? "https://iptv-org.github.io/iptv/index.m3u" : "")
+                    + "," + String.join(",", serverPlaylists)).split(",");
             List<Channel> list = new ArrayList<>();
             Set<String> seen = new HashSet<>();
             Map<String, List<String>> guideUrls = new HashMap<>();
@@ -645,3 +661,4 @@ public final class ChannelRepository {
         }
     }
 }
+
