@@ -77,11 +77,16 @@ public class TvBlock extends HorizontalDirectionalBlock implements EntityBlock {
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
-    /** A TV placed next to others may complete a rectangle: regroup. (Big crafted TVs never join walls.) */
+    /**
+     * A TV placed next to others may complete a rectangle: regroup at the end of the tick, when the new
+     * TV's block entity exists (it is created after onPlace). Big crafted TVs never join walls.
+     */
     @Override
     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
         super.onPlace(state, level, pos, oldState, movedByPiston);
-        if (!level.isClientSide && !oldState.is(this) && getClass() == TvBlock.class) TvWall.recompute(level, pos);
+        if (level instanceof net.minecraft.server.level.ServerLevel server && !oldState.is(this) && getClass() == TvBlock.class) {
+            BigTvConverter.queueRegroup(server, pos);
+        }
     }
 
     /** Removing a TV splits its wall; regroup what is left. */

@@ -1,6 +1,6 @@
 # Status
 
-Version 0.5.0: TVs placed side by side join into one screen (up to 12x8); big-TV recipes removed. 0.4.2: hides Free-TV channels locked to other countries. 0.4.1: Pluto TV with session tokens, the same way as MovieHub's PlutoSource,, for the player's own region (0.3.0 added Free-TV, 0.2.0 big TVs).
+Version 0.5.1: old crafted big TVs turn into normal TVs joined as a wall; wall regrouping now runs at the end of the tick (after the new TV's block entity exists). 0.5.0: TVs placed side by side join into one screen (up to 12x8); big-TV recipes removed. 0.4.2: hides Free-TV channels locked to other countries. 0.4.1: Pluto TV with session tokens, the same way as MovieHub's PlutoSource,, for the player's own region (0.3.0 added Free-TV, 0.2.0 big TVs).
 
 ## Verified
 
@@ -31,7 +31,7 @@ Version 0.5.0: TVs placed side by side join into one screen (up to 12x8); big-TV
 - Pluto playback with 0.4.0's session tokens (Pluto's start service could not be reached from the
   build environment), and video playback in general with WATERMeDIA 2.1.37 in-game, including whether Free-TV streams play
   (some are geo-blocked to their country).
-- TV walls (0.5.0): joining/splitting, wall rendering and remote aiming on walls are untested in-game.
+- TV walls (0.5.0) and big-TV conversion (0.5.1): joining/splitting, conversion, wall rendering and remote aiming on walls are untested in-game.
 - Big TVs (0.2.0): placing, breaking, rendering across blocks and remote aiming are compile-checked only.
   The screen maths for the one-block TV is unchanged (same numbers as 0.1.0).
 - Anything in-game: rendering, the cursor feel, video playback, sound, recipes.

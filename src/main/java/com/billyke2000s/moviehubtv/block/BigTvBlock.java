@@ -113,7 +113,7 @@ public class BigTvBlock extends TvBlock {
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         super.onRemove(state, level, pos, newState, movedByPiston);
-        if (level.isClientSide || state.is(newState.getBlock())) return;
+        if (level.isClientSide || state.is(newState.getBlock()) || BigTvConverter.converting) return;
         // One part went: take the rest of the TV with it (no extra drops).
         Direction facing = state.getValue(FACING);
         BlockPos controller = controllerPos(state, pos);

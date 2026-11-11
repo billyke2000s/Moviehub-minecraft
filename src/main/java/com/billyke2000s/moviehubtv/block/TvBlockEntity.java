@@ -49,6 +49,26 @@ public class TvBlockEntity extends BlockEntity {
         return TvWall.memberPos(worldPosition, getBlockState().getValue(TvBlock.FACING), -wallX, -wallY);
     }
 
+    boolean guideOpenFlag() { return guideOpen; }
+
+    /** Copies power/channel/guide over from an old big TV ({@link BigTvConverter}). Server side only. */
+    void restore(boolean on, String channel, boolean guide) {
+        this.on = on;
+        this.channelId = channel == null ? "" : channel;
+        this.guideOpen = guide;
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+    }
+
+    /** Old crafted big TVs turn themselves into normal TVs as soon as they load. */
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level instanceof net.minecraft.server.level.ServerLevel server && getBlockState().getBlock() instanceof BigTvBlock) {
+            BigTvConverter.queue(server, worldPosition);
+        }
+    }
+
     /** Set by {@link TvWall}. Server side only. */
     void setWall(int x, int y, int w, int h) {
         if (x == wallX && y == wallY && w == wallW && h == wallH) return;

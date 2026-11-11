@@ -32,7 +32,7 @@ rectangle of them, from 2x1 up to 12 wide by 8 tall, becomes one screen: e.g. 3x
 4x3, 8x5. Shapes that aren't a full rectangle stay as separate TVs until you fill them in.
 The bottom-left TV (as you look at it) runs the wall; the remote and right-clicking work
 anywhere on it. Breaking a TV splits the wall; whatever rectangles are left rejoin.
-(The crafted Wide/Large TVs from 0.2.0 still work if already placed, but are no longer craftable.)
+(The crafted Wide/Large TVs from 0.2.0 are no longer craftable. Since 0.5.1 any that are already placed, or placed from an inventory, turn into the same number of normal TVs joined as one screen, keeping power and channel.)
 
 ## Using it
 
