@@ -20,6 +20,7 @@ import net.neoforged.neoforge.common.NeoForge;
 public final class MovieHubTVClient {
     public MovieHubTVClient(IEventBus modBus, ModContainer container) {
         com.billyke2000s.moviehubtv.network.CataloguePayload.receiver = CatalogueClient::receive;
+        com.billyke2000s.moviehubtv.block.SpeakerBlockEntity.clientLoaded = SpeakerAudio::loaded;
         container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         modBus.addListener(MovieHubTVClient::registerRenderers);
 
@@ -35,7 +36,7 @@ public final class MovieHubTVClient {
             CatalogueClient.tick();
         });
         game.addListener((ClientPlayerNetworkEvent.LoggingOut event) -> {
-            TvVideoManager.releaseAll(); GuideRenderer.clear(); VodRepository.clear(); CatalogueClient.clear(); PosterCache.clear();
+            TvVideoManager.releaseAll(); SpeakerAudio.clear(); GuideRenderer.clear(); VodRepository.clear(); CatalogueClient.clear(); PosterCache.clear();
         });
     }
 

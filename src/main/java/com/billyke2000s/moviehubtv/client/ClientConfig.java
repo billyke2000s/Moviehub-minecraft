@@ -24,6 +24,8 @@ public final class ClientConfig {
     public static final ModConfigSpec.ConfigValue<String> GUIDE_URL;
     public static final ModConfigSpec.IntValue MASTER_VOLUME;
     public static final ModConfigSpec.IntValue HEARING_RANGE;
+    public static final ModConfigSpec.IntValue SPEAKER_HEARING_RANGE;
+    public static final ModConfigSpec.IntValue SPEAKER_FULL_VOLUME_RANGE;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -40,8 +42,12 @@ public final class ClientConfig {
                 .define("guide", DEFAULT_GUIDE);
         MASTER_VOLUME = b.comment("Your own volume for all TVs, in percent. Each TV's volume is set with the remote.")
                 .defineInRange("masterVolume", 100, 0, 100);
-        HEARING_RANGE = b.comment("Blocks away from a TV or one of its speakers at which it becomes silent.")
+        HEARING_RANGE = b.comment("Blocks away from the TV itself at which it becomes silent. Speakers use their own range below.")
                 .defineInRange("hearingRange", 16, 4, 64);
+        SPEAKER_HEARING_RANGE = b.comment("Blocks away from a linked speaker at which its sound becomes silent.")
+                .defineInRange("speakerHearingRange", 32, 8, 96);
+        SPEAKER_FULL_VOLUME_RANGE = b.comment("Keep full TV volume within this many blocks of a speaker, then fade gradually.")
+                .defineInRange("speakerFullVolumeRange", 4, 0, 16);
         SPEC = b.build();
     }
 

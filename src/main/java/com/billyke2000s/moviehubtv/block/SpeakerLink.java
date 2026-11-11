@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 public final class SpeakerLink {
     private SpeakerLink() {}
 
-    /** A speaker tuned to a TV (right-click the TV with it) can be placed this far from it; sound stops beyond 64. */
+    /** A speaker tuned to a TV (right-click the TV with it) can be placed this far from it. */
     public static final int MAX_TUNED_DISTANCE = 48;
 
     /**
@@ -41,3 +41,4 @@ public final class SpeakerLink {
         }
     }
 }
+

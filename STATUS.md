@@ -1,5 +1,19 @@
 # Status
 
+## 0.10.1 — speaker distance and audio startup
+
+- Speakers now have their own 32-block falloff and four-block full-volume zone; the TV retains
+  its existing falloff. This makes room speakers louder at normal listening distances without
+  overriding TV/master volume or stacking several speakers into clipping.
+- Speaker links are now sent to clients. Loaded linked speakers start the TV's shared player when
+  the listener approaches, even if that TV never entered the renderer. Playback is retained near
+  speakers past the TV's old 64-block cutoff. Stale, broken, untuned and unloaded links are excluded.
+- The linked TV and the members of its wall must still be loaded; this does not force-load chunks.
+- New client defaults: speakerHearingRange=32, speakerFullVolumeRange=4. Existing hearingRange
+  controls the TV itself. Update server and clients together: protocol tv-0.10.1.
+- Verification pending: production attenuation tests, speaker-start logic without a renderer,
+  existing regressions and full build. No in-game listening test is claimed.
+
 ## 0.10.0 — real MovieHub free services and TMDB posters
 
 - Corrects 0.9.0's scope error: Movies / Shows / Anime now browse TMDB through the host's key,
