@@ -60,12 +60,16 @@ public class TvBlockEntity extends BlockEntity {
         if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
     }
 
-    /** Old crafted big TVs turn themselves into normal TVs as soon as they load. */
+    /** Old crafted big TVs turn themselves into normal TVs, and TV walls re-check their frames, when they load. */
     @Override
     public void onLoad() {
         super.onLoad();
-        if (level instanceof net.minecraft.server.level.ServerLevel server && getBlockState().getBlock() instanceof BigTvBlock) {
+        if (!(level instanceof net.minecraft.server.level.ServerLevel server)) return;
+        if (getBlockState().getBlock() instanceof BigTvBlock) {
             BigTvConverter.queue(server, worldPosition);
+        } else if (getBlockState().is(ModRegistry.TV.get()) && isWallController()) {
+            // Walls built before 0.5.2 have no joined-frame states yet; regrouping sets them.
+            BigTvConverter.queueRegroup(server, worldPosition);
         }
     }
 
