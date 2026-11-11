@@ -38,6 +38,7 @@ public class TvBlockEntity extends BlockEntity {
 
     private boolean on;
     private String channelId = "";
+    private String mediaSource = "";
     private boolean guideOpen = true;
     private boolean mediaPaused;
     private long mediaPosition, mediaTick;
@@ -57,7 +58,8 @@ public class TvBlockEntity extends BlockEntity {
     /** Speakers linked to this TV block (not the rest of its wall). */
     public List<BlockPos> speakers() { return List.copyOf(speakers); }
     public String channelId() { return channelId; }
-    public boolean isOnDemand() { return channelId.startsWith("vod:pluto:"); }
+    public boolean isOnDemand() { return channelId.startsWith("vod:"); }
+    public String mediaSource() { return mediaSource; }
     public boolean mediaPaused() { return mediaPaused; }
     public int mediaRevision() { return mediaRevision; }
     public long mediaPosition() {
@@ -143,7 +145,14 @@ public class TvBlockEntity extends BlockEntity {
             case ACTION_TUNE -> {
                 if (channel == null || channel.isBlank()) return;
                 // Only fixed Pluto episode locators, never a client-supplied arbitrary URL.
-                if (channel.startsWith("vod:") && !channel.matches("vod:pluto:[0-9a-f]{24}\\|[^\\p{Cntrl}|]{1,100}")) return;
+                if (channel.startsWith("vod:moviehub:")) {
+                    String source = com.billyke2000s.moviehubtv.catalogue.ResolvedMedia.find(channel);
+                    if (source.isEmpty()) return;
+                    mediaSource = source;
+                } else {
+                    if (channel.startsWith("vod:") && !channel.matches("vod:pluto:[0-9a-f]{24}\\|[^\\p{Cntrl}|]{1,100}")) return;
+                    mediaSource = "";
+                }
                 on = true;
                 channelId = channel;
                 guideOpen = false;
@@ -233,6 +242,7 @@ public class TvBlockEntity extends BlockEntity {
         super.loadAdditional(tag, registries);
         on = tag.getBoolean("On");
         channelId = tag.getString("Channel");
+        mediaSource = tag.getString("ResolvedMedia");
         mediaPaused = tag.getBoolean("MediaPaused");
         mediaPosition = Math.max(0, tag.getLong("MediaPosition"));
         mediaRevision = tag.getInt("MediaRevision");
@@ -256,6 +266,8 @@ public class TvBlockEntity extends BlockEntity {
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         CompoundTag tag = new CompoundTag();
         saveAdditional(tag, registries);
+        // Playback headers belong only in the live update, not in the saved world.
+        tag.putString("ResolvedMedia", mediaSource);
         return tag;
     }
 

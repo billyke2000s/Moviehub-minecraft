@@ -79,6 +79,21 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
     into "build/generated/sources/modMetadata"
 }
 sourceSets.main.resources.srcDir generateModMetadata
+var engineBundle = tasks.register('bundleMovieHubEngine', Zip) {
+    def upstream = layout.projectDirectory.dir('upstream-moviehub/android-tv-launcher/app/src/main')
+    from(upstream.dir('python'))
+    from(upstream.dir('assets/licenses/vod')) { into 'licenses' }
+    from('src/engine')
+    exclude '**/__pycache__/**', '**/*.pyc'
+    archiveFileName = 'moviehub-engine.zip'
+    destinationDirectory = layout.buildDirectory.dir('generated/engine')
+    doFirst {
+        if (!upstream.file('python/moviehub_vod.py').asFile.exists()) {
+            throw new GradleException('Checkout pinned MovieHub source in upstream-moviehub before building; see README.md')
+        }
+    }
+}
+tasks.named('processResources') { dependsOn engineBundle; from(engineBundle) }
 neoForge.ideSyncTask generateModMetadata
 
 tasks.withType(JavaCompile).configureEach {
@@ -97,6 +112,18 @@ tasks.register('freeVodRegression', JavaExec) {
     mainClass = 'com.billyke2000s.moviehubtv.client.FreeVodRegression'
 }
 tasks.named('check') { dependsOn 'freeVodRegression' }
+tasks.register('tmdbRegression', JavaExec) {
+    dependsOn regressionClasses
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'com.billyke2000s.moviehubtv.catalogue.TmdbRegression'
+}
+tasks.named('check') { dependsOn 'tmdbRegression' }
+tasks.register('mediaTransportRegression', JavaExec) {
+    dependsOn regressionClasses
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'com.billyke2000s.moviehubtv.client.ProviderPngSegmentsTest'
+}
+tasks.named('check') { dependsOn 'mediaTransportRegression' }
 tasks.register('freeVodProbe', JavaExec) {
     dependsOn regressionClasses
     classpath = sourceSets.regression.runtimeClasspath

@@ -1,5 +1,26 @@
 # Status
 
+## 0.10.0 — real MovieHub free services and TMDB posters
+
+- Corrects 0.9.0's scope error: Movies / Shows / Anime now browse TMDB through the host's key,
+  with poster paths and a client texture loader. No silent substitution with Pluto's catalogue.
+- Selecting a film searches Android MovieHub's actual free-provider runtime. Shows open TMDB
+  seasons and episodes before searching. Results appear incrementally with website/quality names
+  and tune via server-issued IDs. The same blue menu and existing video popup remain.
+- The jar bundles the unmodified Python provider and host-resolver sources from MovieHub commit
+  08343545afd7b535f8c9112f818ad60ee4432bd4, including the same 74 active website groups and their
+  disabled/retired-site policy. This is actual provider-code reuse, not a new substitute source list.
+- Host needs Python 3.10+ and pip. Missing requests/six dependencies are installed into a private
+  engine directory, not system Python. Players need neither Python nor a TMDB key. Missing key,
+  Python, no-match and provider failures are reported in the menu.
+- A client-local relay carries source headers, rewrites HLS links and uses MovieHub's PNG-segment
+  decoder. Videos download on players' connections. TMDB and source discovery run on the server.
+- Source URLs/headers are ephemeral live TV updates, not saved in world NBT. After a host restart,
+  reselect the film/episode; expiring links may also need a new source search. Some remote services
+  can fail or return no links. No claim that every website/title works, or of in-game verification.
+- Verification pending: full build, upstream resolver fixtures, bridge contract, bundled-source
+  hashes, TMDB-poster DTO and source selection tests. Protocol tv-0.10.0 on server and clients.
+
 ## 0.9.0 — free Movies / Shows / Anime tabs
 
 - Existing on-TV blue guide, channel categories, remote cursor and player information banner retained.

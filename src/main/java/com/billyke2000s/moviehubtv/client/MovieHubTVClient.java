@@ -35,7 +35,7 @@ public final class MovieHubTVClient {
             CatalogueClient.tick();
         });
         game.addListener((ClientPlayerNetworkEvent.LoggingOut event) -> {
-            TvVideoManager.releaseAll(); GuideRenderer.clear(); VodRepository.clear(); CatalogueClient.clear();
+            TvVideoManager.releaseAll(); GuideRenderer.clear(); VodRepository.clear(); CatalogueClient.clear(); PosterCache.clear();
         });
     }
 

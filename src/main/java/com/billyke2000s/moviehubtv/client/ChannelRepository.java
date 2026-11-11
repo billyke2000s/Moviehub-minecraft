@@ -85,6 +85,10 @@ public final class ChannelRepository {
     /** Guide categories; their indices point into {@link #channels()}. "All channels" is first. */
     public static List<ChannelCategories.Category> categories() { return categories; }
     public static Channel channel(String id) {
+        if (id != null && id.startsWith("vod:moviehub:")) {
+            String[] parts = id.substring(13).split("\\|", 2);
+            if (parts.length == 2) return new Channel(0, id, parts[1], "moviehub-vod:" + parts[0], "MovieHub", "");
+        }
         if (id != null && id.startsWith("vod:pluto:")) {
             String[] parts = id.substring(10).split("\\|", 2);
             if (parts.length == 2 && VodCatalogue.validId(parts[0]))

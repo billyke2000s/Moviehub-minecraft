@@ -22,28 +22,8 @@ final class CatalogueSearchScreen extends Screen {
     }
     private void submit() {
         String value = input.getValue().trim();
-        if (!value.startsWith("tmdb:")) { GuideRenderer.search(pos, value); onClose(); return; }
-        String[] p = value.split(":");
-        if (p.length != 3 || (!p[1].equals("movie") && !p[1].equals("tv"))) { status = "Use tmdb:movie:ID or tmdb:tv:ID"; return; }
-        int id;
-        try { id = Integer.parseInt(p[2]); if (id < 1) throw new NumberFormatException(); }
-        catch (NumberFormatException e) { status = "Enter a positive numeric TMDB ID"; return; }
-        status = "Looking up TMDB...";
-        CatalogueClient.request(p[1], id, data -> {
-            if (minecraft == null || minecraft.screen != this) return;
-            if (data.has("error")) { status = data.get("error").getAsString(); return; }
-            String title = VodCatalogue.text(data, "title");
-            if (title.isEmpty()) { status = "No title found for that ID"; return; }
-            // TMDB IDs identify metadata only. Match against the actual free regional catalogue.
-            String original = VodCatalogue.text(data, "original");
-            String match = VodRepository.all().stream().filter(i ->
-                    i.series() == p[1].equals("tv") && (VodCatalogue.normal(i.title()).equals(VodCatalogue.normal(title))
-                    || (!original.isEmpty() && VodCatalogue.normal(i.title()).equals(VodCatalogue.normal(original)))))
-                    .map(VodCatalogue.Item::title).findFirst().orElse(null);
-            if (match == null) { status = title + ": no free Pluto source in your region. Try a title search."; return; }
-            GuideRenderer.chooseTab(pos, p[1].equals("movie") ? 1 : 2);
-            GuideRenderer.search(pos, match); onClose();
-        });
+        GuideRenderer.search(pos, value);
+        onClose();
     }
     public boolean keyPressed(int key, int scan, int modifiers) {
         if (key == 257 || key == 335) { submit(); return true; }
@@ -57,7 +37,7 @@ final class CatalogueSearchScreen extends Screen {
         for (var line : font.split(Component.literal(status), Math.min(360, width - 30))) {
             g.drawCenteredString(font, line, width / 2, y, 0xFFA9BCDD); y += 10;
         }
-        g.drawCenteredString(font, "TMDB metadata; free playback from Pluto TV", width / 2, height - 22, 0xFFA9BCDD);
+        g.drawCenteredString(font, "TMDB catalogue - MovieHub free services", width / 2, height - 22, 0xFFA9BCDD);
     }
     public boolean isPauseScreen() { return false; }
 }

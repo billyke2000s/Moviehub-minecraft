@@ -59,9 +59,7 @@ final class GuideRenderer {
     /** Per-TV guide state on this client. */
     private static final class State {
         int tab; // Live TV, Movies, Shows, Anime. The existing guide stays intact below the tabs.
-        int vodScroll;
-        String query = "";
-        VodCatalogue.Item series;
+        final TmdbBrowser browser = new TmdbBrowser();
         int category;          // index into ChannelRepository.categories(); 0 = All channels
         boolean picking = true; // showing the category list; the guide opens on it the first time
         Integer channelScroll; // null until first shown, then the first visible row
@@ -75,27 +73,23 @@ final class GuideRenderer {
     static void chooseTab(BlockPos pos, int tab) {
         State s = state(pos);
         if (tab < 0 || tab > 3) return;
-        s.tab = tab; s.vodScroll = 0; s.query = ""; s.series = null;
-        if (tab != 0) VodRepository.ensureLoaded();
+        s.browser.cancelSearch();
+        s.tab = tab;
+        if (tab != 0) s.browser.root(tab);
     }
     static void search(BlockPos pos, String query) {
-        State s = state(pos); s.query = query; s.vodScroll = 0; s.series = null;
+        State s = state(pos); s.browser.search(s.tab, query);
     }
     static boolean backVod(BlockPos pos) {
         State s = state(pos);
-        if (s.tab == 0 || s.series == null) return false;
-        s.series = null; s.vodScroll = 0; return true;
+        return s.tab != 0 && s.browser.back();
     }
-    private static List<VodCatalogue.Item> vod(State s) {
-        return VodRepository.list(s.tab, s.series == null ? "" : s.series.id(), s.query);
+    private static List<com.google.gson.JsonObject> vod(State s) {
+        return s.browser.items;
     }
     /** Returns a playable free locator, or opens the selected show's episodes. */
     static String chooseVod(BlockPos pos, int index) {
-        State s = state(pos); var list = vod(s);
-        if (index < 0 || index >= list.size()) return null;
-        var item = list.get(index);
-        if (item.series()) { s.series = item; s.vodScroll = 0; s.query = ""; VodRepository.loadEpisodes(item); return null; }
-        return item.playbackId();
+        return state(pos).browser.activate(index);
     }
 
     private static State state(BlockPos pos) {
@@ -125,7 +119,7 @@ final class GuideRenderer {
     static int scroll(BlockPos pos, TvBlockEntity tv) {
         State s = state(pos);
         int max = Math.max(0, count(s) - ROWS);
-        if (s.tab != 0) return Math.max(0, Math.min(max, s.vodScroll));
+        if (s.tab != 0) return s.browser.scroll;
         if (s.picking) return Math.max(0, Math.min(max, s.categoryScroll));
         if (s.channelScroll == null) {
             // First time the guide is seen: start on the page with the current channel.
@@ -144,10 +138,13 @@ final class GuideRenderer {
 
     static void scrollBy(BlockPos pos, TvBlockEntity tv, int rows) {
         State s = state(pos);
+        if (s.tab != 0) {
+            s.browser.scrollBy(Math.abs(rows) == ROWS ? Integer.signum(rows) * TmdbBrowser.ROWS : rows);
+            return;
+        }
         int max = Math.max(0, count(s) - ROWS);
         int next = Math.max(0, Math.min(max, scroll(pos, tv) + rows));
-        if (s.tab != 0) s.vodScroll = next;
-        else if (s.picking) s.categoryScroll = next;
+        if (s.picking) s.categoryScroll = next;
         else s.channelScroll = next;
     }
 
@@ -173,14 +170,19 @@ final class GuideRenderer {
             if (u >= 3 && u < 3 + GuideLayout.BUTTON_W) return new Hit(Target.UP, -1);
             if (u >= 23 && u < 23 + GuideLayout.BUTTON_W) return new Hit(Target.DOWN, -1);
             if (u >= l.categoriesX() && u < l.categoriesX() + GuideLayout.CATEGORIES_W) return new Hit(Target.CATEGORIES, -1);
-            if (u >= l.backX() && u < l.backX() + GuideLayout.BACK_W && (!tv.channelId().isEmpty() || s.series != null)) return new Hit(Target.BACK, -1);
+            if (u >= l.backX() && u < l.backX() + GuideLayout.BACK_W && (!tv.channelId().isEmpty() || s.browser.canBack())) return new Hit(Target.BACK, -1);
             return Hit.NONE;
         }
         if (v < ROW_Y0 || u < GuideLayout.CH_X || u >= l.rowRight()) return Hit.NONE;
+        if (s.tab != 0) {
+            int row = (int) ((v - ROW_Y0) / TmdbBrowser.STEP);
+            int index = s.browser.scroll + row;
+            return row < TmdbBrowser.ROWS && (v - ROW_Y0) - row * TmdbBrowser.STEP < TmdbBrowser.HEIGHT
+                    && index < vod(s).size() ? new Hit(Target.VOD, index) : Hit.NONE;
+        }
         int row = (int) ((v - ROW_Y0) / ROW_STEP);
         if (row >= ROWS || (v - ROW_Y0) - row * ROW_STEP >= ROW_H) return Hit.NONE;
         int index = scroll(pos, tv) + row;
-        if (s.tab != 0) return index < vod(s).size() ? new Hit(Target.VOD, index) : Hit.NONE;
         if (s.picking) {
             return index < ChannelRepository.categories().size() ? new Hit(Target.CATEGORY, index) : Hit.NONE;
         }
@@ -230,21 +232,26 @@ final class GuideRenderer {
     private static void drawVod(Canvas c, State s, GuideLayout l, int first, Hit hover) {
         var items = vod(s);
         if (items.isEmpty()) {
-            String message = !s.query.isEmpty() ? "No free match - try another title" : s.series != null
-                    ? VodRepository.episodeStatus(s.series.id()) : VodRepository.loading() ? "Loading free titles..."
-                    : VodRepository.all().isEmpty() ? VodRepository.status() : "No free titles in this section for your region";
-            c.textCentered(c.fit(message, l.width - 10, 0.7f), l.width / 2, 68, 1, 0.7f, SUB);
-            c.textCentered("Search: title or tmdb:movie:ID / tmdb:tv:ID", l.width / 2, 84, 1, 0.55f, SUB);
+            String message = s.browser.status;
+            for (int line = 0; line < 9 && !message.isEmpty(); line++) {
+                String part = c.font.plainSubstrByWidth(message, (int) ((l.width - 12) / 0.65f));
+                c.text(part, 6, 35 + line * 10, 1, 0.65f, SUB);
+                message = message.substring(part.length()).stripLeading();
+            }
         }
-        for (int row = 0; row < ROWS && first + row < items.size(); row++) {
+        for (int row = 0; row < TmdbBrowser.ROWS && first + row < items.size(); row++) {
             int index = first + row; var item = items.get(index);
-            float y = ROW_Y0 + row * ROW_STEP, w = l.rowRight() - GuideLayout.CH_X;
+            float y = ROW_Y0 + row * TmdbBrowser.STEP, w = l.rowRight() - GuideLayout.CH_X;
             boolean over = hover.target() == Target.VOD && hover.channelIndex() == index;
-            c.panel(GuideLayout.CH_X, y, w, ROW_H, 0.5f, over ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
-            c.text(c.fit(item.title(), w - 30, 0.75f), 6, y + 2, 1, 0.75f, WHITE);
-            c.text(c.fit(item.subtitle(), w - 12, 0.6f), 6, y + 10, 1, 0.6f, SUB);
-            c.textRight(item.series() ? ">" : "Play", l.rowRight() - 4, y + 4, 1, 0.65f, GOLD);
-            if (over) c.outline(GuideLayout.CH_X - 1, y - 1, w + 2, ROW_H + 2, 1.2f, GOLD);
+            c.panel(GuideLayout.CH_X, y, w, TmdbBrowser.HEIGHT, 0.5f, over ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
+            var poster = PosterCache.get(TmdbBrowser.text(item, "poster"));
+            if (poster != null) c.image(poster, 4, y + 1, 18, 27, 1, 0, 0, 1, 1, WHITE);
+            else c.rect(4, y + 1, 18, 27, 1, BAR_DARK);
+            c.text(c.fit(TmdbBrowser.text(item, "title"), w - 52, 0.75f), 27, y + 3, 1, 0.75f, WHITE);
+            c.text(c.fit(TmdbBrowser.text(item, "subtitle"), w - 34, 0.6f), 27, y + 13, 1, 0.6f, GOLD);
+            c.text(c.fit(TmdbBrowser.text(item, "overview"), w - 34, 0.55f), 27, y + 21, 1, 0.55f, SUB);
+            c.textRight(TmdbBrowser.text(item, "kind").equals("source") ? "Play" : ">", l.rowRight() - 4, y + 3, 1, 0.65f, GOLD);
+            if (over) c.outline(GuideLayout.CH_X - 1, y - 1, w + 2, TmdbBrowser.HEIGHT + 2, 1.2f, GOLD);
         }
     }
 
@@ -333,14 +340,14 @@ final class GuideRenderer {
         button(c, 3, GuideLayout.BUTTON_W, "▲", hover.target() == Target.UP, 0.8f);
         button(c, 23, GuideLayout.BUTTON_W, "▼", hover.target() == Target.DOWN, 0.8f);
         if (total > 0) {
-            int last = Math.min(total, first + ROWS);
+            int last = Math.min(total, first + (s.tab != 0 ? TmdbBrowser.ROWS : ROWS));
             String page = (first + 1) + "-" + last + " of " + total;
             c.text(c.fit(page, l.pageW(), 0.7f), l.pageX(), FOOTER_Y + 5, 1, 0.7f, SUB);
         }
         button(c, l.categoriesX(), GuideLayout.CATEGORIES_W, s.tab != 0 ? "Search" : s.picking ? "Channels" : "Categories",
                 hover.target() == Target.CATEGORIES, 0.6f);
-        if (!tv.channelId().isEmpty() || s.series != null) {
-            button(c, l.backX(), GuideLayout.BACK_W, s.series != null ? "Back" : "Back to TV", hover.target() == Target.BACK, 0.6f);
+        if (!tv.channelId().isEmpty() || s.browser.canBack()) {
+            button(c, l.backX(), GuideLayout.BACK_W, s.browser.canBack() ? "Back" : "Back to TV", hover.target() == Target.BACK, 0.6f);
         }
     }
 
