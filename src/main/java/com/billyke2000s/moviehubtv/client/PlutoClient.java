@@ -240,5 +240,25 @@ final class PlutoClient {
         }
         return get("https://api.pluto.tv" + path, s.token());
     }
+
+    /** The API returns 100 categories per page. Fetch every page instead of silently showing page one. */
+    static String fetchVodCatalogue() throws Exception {
+        String route = "/v3/vod/categories?includeItems=true&deviceType=web";
+        JsonObject first = JsonParser.parseString(vodGet(route)).getAsJsonObject();
+        int pages = first.has("totalPages") ? first.get("totalPages").getAsInt() : 1;
+        if (pages > 20) throw new IllegalStateException("Unexpectedly large free catalogue");
+        JsonArray combined = VodCatalogue.array(first, "categories");
+        int pageSize = combined.size();
+        for (int page = 2; page <= pages; page++) {
+            JsonObject next = JsonParser.parseString(vodGet(route + "&page=" + page + "&offset=" + ((page - 1) * pageSize))).getAsJsonObject();
+            if (next.has("page") && next.get("page").getAsInt() != page)
+                throw new IllegalStateException("Provider returned an incomplete catalogue page");
+            JsonArray categories = VodCatalogue.array(next, "categories");
+            if (categories.isEmpty()) throw new IllegalStateException("Provider returned an empty catalogue page");
+            combined.addAll(categories);
+        }
+        first.add("categories", combined);
+        return first.toString();
+    }
 }
 

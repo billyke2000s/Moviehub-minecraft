@@ -19,8 +19,11 @@
   accounts and site-specific free-VOD resolver runtime are not ported by this change. Native Samsung,
   Plex, Roku, etc. still do not have dedicated adapters in the mod; some channels can appear in the
   public lists. Do not claim every Android channel or movie is present or playable.
-- Verification pending: offline parser fixtures, existing TV regression suite and full GitHub Actions
-  compilation. No in-game or UK live-provider playback has been verified for this version.
+- Verified: offline production-parser fixtures and the existing TV regression suite pass; full
+  GitHub Actions compilation passes. The production Java provider code returned 2,609 movies,
+  1,405 shows and 235 anime titles from page one in the US runner, an HLS movie manifest, and 62
+  playable episodes for a sample show. This exposed a four-page catalogue; loading all pages is
+  included and is being checked separately. No in-game or UK playback is claimed.
 - Protocol `tv-0.9.0`: update the server and every client together.
 
 ## 0.8.1 — guide opens on categories

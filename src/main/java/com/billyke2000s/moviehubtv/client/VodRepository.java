@@ -26,7 +26,7 @@ final class VodRepository {
         loading = true; int gen = generation;
         WORK.execute(() -> {
             try {
-                List<VodCatalogue.Item> found = VodCatalogue.catalogue(PlutoClient.vodGet("/v3/vod/categories?includeItems=true&deviceType=web"));
+                List<VodCatalogue.Item> found = VodCatalogue.catalogue(PlutoClient.fetchVodCatalogue());
                 if (gen != generation) return;
                 catalogue = found; status = found.isEmpty() ? "No free titles returned for your region" : "Free on demand - Pluto TV";
                 loadedAt = System.currentTimeMillis();

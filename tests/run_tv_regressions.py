@@ -234,4 +234,3 @@ def main():
     print('PASS: block delegation and all 128 model variants; identical joined frame on/off')
 
 if __name__=='__main__': main()
-
