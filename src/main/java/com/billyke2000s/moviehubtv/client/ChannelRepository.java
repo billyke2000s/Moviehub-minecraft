@@ -142,11 +142,28 @@ public final class ChannelRepository {
             status = "";
             MovieHubTV.LOGGER.info("MovieHub TV loaded {} channels", list.size());
 
+            // Pluto's own listings first (the shared XMLTV file's Pluto part can be days old), so Pluto
+            // channels show what is really on; then the XMLTV guide for everything else.
+            Map<String, List<Programme>> plutoGuide = Map.of();
+            if (plutoNative) {
+                List<String> plutoIds = new ArrayList<>();
+                for (Channel c : list) if (c.url().startsWith("pluto:")) plutoIds.add(c.id());
+                plutoGuide = fetchPlutoGuide(plutoIds);
+                if (!plutoGuide.isEmpty()) {
+                    Map<String, List<Programme>> merged = new HashMap<>(guide);
+                    merged.putAll(plutoGuide);
+                    guide = merged;
+                }
+                MovieHubTV.LOGGER.info("Pluto TV guide has listings for {} of {} Pluto channels", plutoGuide.size(), plutoIds.size());
+            }
+
             String guideUrl = ClientConfig.get(ClientConfig.GUIDE_URL, ClientConfig.DEFAULT_GUIDE).trim();
             if (!guideUrl.isEmpty()) {
                 try {
                     Path file = fetch(guideUrl, cache.resolve(guideUrl.endsWith(".gz") ? "guide.xml.gz" : "guide.xml"), GUIDE_MAX_AGE);
-                    guide = parseGuide(file, ids.keySet());
+                    Map<String, List<Programme>> merged = new HashMap<>(parseGuide(file, ids.keySet()));
+                    merged.putAll(plutoGuide); // Pluto's live listings beat the file's
+                    guide = merged;
                     MovieHubTV.LOGGER.info("MovieHub TV guide has listings for {} of {} channels", guide.size(), ids.size());
                 } catch (Exception e) {
                     MovieHubTV.LOGGER.warn("Could not load TV guide {}", guideUrl, e);
@@ -158,6 +175,63 @@ public final class ChannelRepository {
         } finally {
             loading = false;
         }
+    }
+
+    /** A day of Pluto listings for these channel IDs, 20 channels per request (like MovieHub). */
+    static Map<String, List<Programme>> fetchPlutoGuide(List<String> plutoIds) {
+        Map<String, List<Programme>> out = new HashMap<>();
+        int failures = 0;
+        for (int i = 0; i < plutoIds.size(); i += 20) {
+            try {
+                parsePlutoTimelines(PlutoClient.timelines(plutoIds.subList(i, Math.min(plutoIds.size(), i + 20))), out);
+            } catch (Exception e) {
+                if (failures++ == 0) MovieHubTV.LOGGER.warn("Could not load part of the Pluto TV guide", e);
+                if (failures >= 3) break; // Pluto is down; the XMLTV file still covers what it can
+            }
+        }
+        for (Map.Entry<String, List<Programme>> e : out.entrySet()) {
+            List<Programme> sorted = new ArrayList<>(e.getValue());
+            sorted.sort((a, b) -> Long.compare(a.start(), b.start()));
+            e.setValue(List.copyOf(sorted));
+        }
+        return out;
+    }
+
+    /**
+     * Parses {@code /v2/guide/timelines}: data[].channelId and data[].timelines[] with start/stop
+     * (ISO times) and title; the episode name is used when there is one, as MovieHub does.
+     */
+    static void parsePlutoTimelines(String json, Map<String, List<Programme>> out) {
+        com.google.gson.JsonElement root = com.google.gson.JsonParser.parseString(json);
+        if (!root.isJsonObject() || !root.getAsJsonObject().has("data")) return;
+        for (com.google.gson.JsonElement rowEl : root.getAsJsonObject().getAsJsonArray("data")) {
+            if (!rowEl.isJsonObject()) continue;
+            com.google.gson.JsonObject row = rowEl.getAsJsonObject();
+            String id = str(row, "channelId").toLowerCase();
+            if (!PlutoClient.isPlutoId(id) || !row.has("timelines") || !row.get("timelines").isJsonArray()) continue;
+            for (com.google.gson.JsonElement itemEl : row.getAsJsonArray("timelines")) {
+                if (!itemEl.isJsonObject()) continue;
+                com.google.gson.JsonObject item = itemEl.getAsJsonObject();
+                try {
+                    long start = java.time.Instant.parse(str(item, "start")).toEpochMilli();
+                    long stop = java.time.Instant.parse(str(item, "stop")).toEpochMilli();
+                    if (stop <= start) continue;
+                    String title = str(item, "title");
+                    if (item.has("episode") && item.get("episode").isJsonObject()) {
+                        String episode = str(item.getAsJsonObject("episode"), "name");
+                        if (!episode.isBlank()) title = episode;
+                    }
+                    if (title.isBlank()) continue;
+                    out.computeIfAbsent(id, k -> new ArrayList<>()).add(new Programme(start, stop, title.trim()));
+                } catch (Exception ignored) {
+                    // one bad listing shouldn't drop the rest
+                }
+            }
+        }
+    }
+
+    private static String str(com.google.gson.JsonObject o, String key) {
+        return o.has(key) && o.get(key).isJsonPrimitive() ? o.get(key).getAsString() : "";
     }
 
     /** Downloads url to target unless a fresh enough copy exists; falls back to an old copy when offline. */

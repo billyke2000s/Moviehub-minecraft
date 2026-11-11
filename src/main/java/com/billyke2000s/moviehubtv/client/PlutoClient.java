@@ -165,6 +165,24 @@ final class PlutoClient {
         return get(s.channels() + "/v2/guide/channels", s.token());
     }
 
+    /**
+     * A day of Pluto's own listings for up to 20 channels, as MovieHub fetches them:
+     * {@code <channels server>/v2/guide/timelines?channelIds=..&start=<this hour>&duration=1440}.
+     * Runs on the calling thread and reuses (or starts) the session.
+     */
+    static String timelines(List<String> channelIds) throws Exception {
+        Session s = session;
+        if (s == null || System.currentTimeMillis() > s.expiresAt() - RENEW_MARGIN_MS) {
+            s = boot();
+            session = s;
+        }
+        String start = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.HOURS).toString();
+        return get(s.channels() + "/v2/guide/timelines?channelIds="
+                + URLEncoder.encode(String.join(",", channelIds), StandardCharsets.UTF_8)
+                + "&start=" + URLEncoder.encode(start, StandardCharsets.UTF_8)
+                + "&duration=1440", s.token());
+    }
+
     /** The JWT's "exp" claim in milliseconds, or 0 if it can't be read. */
     static long tokenExpiry(String jwt) {
         try {

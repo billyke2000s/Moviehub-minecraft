@@ -1,6 +1,6 @@
 # Status
 
-Version 0.5.2: TVs in a wall swap to frame pieces (wall_column/wall_row block states) so the wall looks like one TV even when off. 0.5.1: old crafted big TVs turn into normal TVs joined as a wall; wall regrouping now runs at the end of the tick (after the new TV's block entity exists). 0.5.0: TVs placed side by side join into one screen (up to 12x8); big-TV recipes removed. 0.4.2: hides Free-TV channels locked to other countries. 0.4.1: Pluto TV with session tokens, the same way as MovieHub's PlutoSource,, for the player's own region (0.3.0 added Free-TV, 0.2.0 big TVs).
+Version 0.5.3: Pluto guide comes straight from Pluto (/v2/guide/timelines, 20 channels per request, 24 h, like MovieHub) because the Moviehub-epg file's Pluto listings had stopped at 10 Nov 03:37. 0.5.2: TVs in a wall swap to frame pieces (wall_column/wall_row block states) so the wall looks like one TV even when off. 0.5.1: old crafted big TVs turn into normal TVs joined as a wall; wall regrouping now runs at the end of the tick (after the new TV's block entity exists). 0.5.0: TVs placed side by side join into one screen (up to 12x8); big-TV recipes removed. 0.4.2: hides Free-TV channels locked to other countries. 0.4.1: Pluto TV with session tokens, the same way as MovieHub's PlutoSource,, for the player's own region (0.3.0 added Free-TV, 0.2.0 big TVs).
 
 ## Verified
 
