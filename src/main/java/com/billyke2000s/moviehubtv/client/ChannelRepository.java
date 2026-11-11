@@ -171,23 +171,17 @@ public final class ChannelRepository {
         return added;
     }
 
-    private static Path fetchPluto(Path target) throws IOException, InterruptedException {
-        if (Files.exists(target)
-                && System.currentTimeMillis() - Files.getLastModifiedTime(target).toMillis() < PLAYLIST_MAX_AGE.toMillis()) {
-            return target;
-        }
+    /** Pluto's channel list for this player's region; cached so a Pluto outage still shows channels. */
+    private static Path fetchPluto(Path target) throws IOException {
         try {
-            HttpResponse<String> response = PlutoClient.http().send(PlutoClient.channelsRequest(),
-                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() != 200) throw new IOException("HTTP " + response.statusCode() + " for Pluto channels");
-            Files.writeString(target, response.body(), StandardCharsets.UTF_8);
+            Files.writeString(target, PlutoClient.fetchCatalogue(), StandardCharsets.UTF_8);
             return target;
-        } catch (IOException e) {
+        } catch (Exception e) {
             if (Files.exists(target)) {
                 MovieHubTV.LOGGER.warn("Using cached Pluto channel list ({})", e.toString());
                 return target;
             }
-            throw e;
+            throw new IOException("Could not load Pluto channels", e);
         }
     }
 

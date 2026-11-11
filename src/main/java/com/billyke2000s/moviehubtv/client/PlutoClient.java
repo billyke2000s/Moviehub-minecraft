@@ -16,9 +16,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -35,20 +33,19 @@ final class PlutoClient {
     private PlutoClient() {}
 
     static final String BOOT_URL = "https://boot.pluto.tv/v4/start";
-    static final String CHANNELS_URL = "https://api.pluto.tv/v2/channels.json";
-    private static final String DEFAULT_STITCHER = "https://cfd-v4-service-channel-stitcher-use1-1.prd.pluto.tv";
-    private static final String APP_VERSION = "8.0.0-111b2b9dc00bd0bea9030b30662159ed9e7c8bc6";
     static final String USER_AGENT =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0";
     private static final Pattern PLUTO_ID = Pattern.compile("[0-9a-f]{24}");
-    /** Renew this long before the token expires, so a channel change never gets a dead token. */
-    private static final long RENEW_MARGIN_MS = Duration.ofMinutes(30).toMillis();
+    /** Pluto says how often to start a new session (refreshInSec); like MovieHub, at most every 10 minutes. */
+    private static final int MAX_REFRESH_SEC = 600;
+    /** Start renewing this long before the session is due, so a channel change never waits. */
+    private static final long RENEW_MARGIN_MS = Duration.ofMinutes(2).toMillis();
     private static final long RETRY_AFTER_FAILURE_MS = Duration.ofSeconds(30).toMillis();
 
     /** One random device id per game run, like a browser tab. */
     private static final String CLIENT_ID = UUID.randomUUID().toString();
 
-    record Session(String token, String stitcher, String stitcherParams, long expiresAt) {}
+    record Session(String token, String stitcher, String channels, String stitcherParams, String country, long expiresAt) {}
     record PlutoChannel(String id, String name, int number) {}
 
     private static volatile Session session;
@@ -73,11 +70,12 @@ final class PlutoClient {
         Session s = session;
         if (s == null || now > s.expiresAt() - RENEW_MARGIN_MS) bootInBackground();
         if (s == null || now > s.expiresAt()) return null;
+        if (!isPlutoId(channelId)) return null;
         StringBuilder url = new StringBuilder(s.stitcher())
-                .append("/v2/stitch/hls/channel/").append(channelId).append("/master.m3u8")
-                .append("?jwt=").append(s.token())
+                .append("/v2/stitch/hls/channel/").append(channelId).append("/master.m3u8?");
+        if (!s.stitcherParams().isEmpty()) url.append(s.stitcherParams()).append('&');
+        url.append("jwt=").append(URLEncoder.encode(s.token(), StandardCharsets.UTF_8))
                 .append("&masterJWTPassthrough=true");
-        if (!s.stitcherParams().isEmpty()) url.append('&').append(s.stitcherParams());
         return url.toString();
     }
 
@@ -105,51 +103,66 @@ final class PlutoClient {
         t.start();
     }
 
+    /** Same request as MovieHub's PlutoSource: anonymous, for the requester's own region. */
     static Session boot() throws Exception {
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("appName", "web");
-        params.put("appVersion", APP_VERSION);
-        params.put("deviceVersion", "122.0.0");
-        params.put("deviceModel", "web");
-        params.put("deviceMake", "chrome");
-        params.put("deviceType", "web");
-        params.put("clientID", CLIENT_ID);
-        params.put("clientModelNumber", "1.0.0");
-        params.put("serverSideAds", "false");
-        params.put("drmCapabilities", "widevine:L3"); // same as the web player; live channels are plain HLS
-        params.put("blockingMode", "");
-        StringBuilder query = new StringBuilder();
-        for (Map.Entry<String, String> e : params.entrySet()) {
-            if (!query.isEmpty()) query.append('&');
-            query.append(e.getKey()).append('=').append(URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8));
-        }
-        HttpRequest request = HttpRequest.newBuilder(URI.create(BOOT_URL + "?" + query))
+        String url = BOOT_URL + "?appName=web&appVersion=9.0.0"
+                + "&deviceVersion=145.0&deviceModel=web&deviceMake=firefox&deviceType=web"
+                + "&clientModelNumber=1.0.0&serverSideAds=true&clientID=" + CLIENT_ID;
+        return parseBoot(get(url, null), System.currentTimeMillis());
+    }
+
+    static String get(String url, String bearer) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(url))
                 .timeout(Duration.ofSeconds(30))
-                .header("Accept", "*/*")
-                .header("Origin", "https://pluto.tv")
-                .header("Referer", "https://pluto.tv/")
-                .header("User-Agent", USER_AGENT)
-                .GET().build();
-        HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        if (response.statusCode() / 100 != 2) throw new IllegalStateException("HTTP " + response.statusCode() + " from Pluto start");
-        return parseBoot(response.body(), System.currentTimeMillis());
+                .header("Accept", "application/json, */*")
+                .header("User-Agent", USER_AGENT);
+        if (bearer != null) request.header("Authorization", "Bearer " + bearer);
+        HttpResponse<String> response = HTTP.send(request.GET().build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() / 100 != 2) throw new IllegalStateException("HTTP " + response.statusCode() + " from " + URI.create(url).getHost());
+        return response.body();
     }
 
     static Session parseBoot(String json, long nowMillis) {
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
         String token = root.has("sessionToken") ? root.get("sessionToken").getAsString() : "";
         if (token.isEmpty()) throw new IllegalStateException("Pluto start returned no session token");
-        String stitcher = DEFAULT_STITCHER;
-        if (root.has("servers") && root.get("servers").isJsonObject()) {
-            JsonObject servers = root.getAsJsonObject("servers");
-            if (servers.has("stitcher")) stitcher = servers.get("stitcher").getAsString();
-        }
-        while (stitcher.endsWith("/")) stitcher = stitcher.substring(0, stitcher.length() - 1);
+        JsonObject servers = root.getAsJsonObject("servers");
+        String stitcher = endpoint(servers.get("stitcher").getAsString());
+        String channels = endpoint(servers.get("channels").getAsString());
         String stitcherParams = root.has("stitcherParams") && !root.get("stitcherParams").isJsonNull()
                 ? root.get("stitcherParams").getAsString() : "";
-        long expires = tokenExpiry(token);
-        if (expires <= nowMillis) expires = nowMillis + Duration.ofHours(12).toMillis();
-        return new Session(token, stitcher, stitcherParams, expires);
+        String country = "us";
+        if (root.has("session") && root.get("session").isJsonObject()
+                && root.getAsJsonObject("session").has("countryCode")) {
+            country = root.getAsJsonObject("session").get("countryCode").getAsString().toLowerCase();
+        }
+        if (country.equals("gb")) country = "uk";
+        int refresh = root.has("refreshInSec") ? root.get("refreshInSec").getAsInt() : MAX_REFRESH_SEC;
+        long expires = nowMillis + Math.min(MAX_REFRESH_SEC, Math.max(60, refresh)) * 1000L;
+        long tokenExp = tokenExpiry(token);
+        if (tokenExp > nowMillis) expires = Math.min(expires, tokenExp);
+        return new Session(token, stitcher, channels, stitcherParams, country, expires);
+    }
+
+    /** Only Pluto's own *.pluto.tv servers, as returned by Pluto, ever receive the token. */
+    static String endpoint(String url) {
+        URI uri = URI.create(url.trim());
+        if (!"https".equals(uri.getScheme()) || uri.getHost() == null || !uri.getHost().endsWith(".pluto.tv")
+                || uri.getPort() != -1 || uri.getQuery() != null || uri.getFragment() != null
+                || !(uri.getPath() == null || uri.getPath().isEmpty() || uri.getPath().equals("/"))) {
+            throw new IllegalArgumentException("Unexpected Pluto server address: " + url);
+        }
+        return url.trim().replaceAll("/+$", "");
+    }
+
+    /**
+     * Starts a session (on the calling thread) and returns this region's live channel list, as
+     * MovieHub does: {@code <channels server>/v2/guide/channels} with the session token.
+     */
+    static String fetchCatalogue() throws Exception {
+        Session s = boot();
+        session = s;
+        return get(s.channels() + "/v2/guide/channels", s.token());
     }
 
     /** The JWT's "exp" claim in milliseconds, or 0 if it can't be read. */
@@ -165,18 +178,22 @@ final class PlutoClient {
         }
     }
 
-    /** Parses api.pluto.tv/v2/channels.json (the requester's region): live channels, in Pluto's order. */
+    /** Parses {@code /v2/guide/channels}: live channels for this region, in Pluto's channel-number order. */
     static List<PlutoChannel> parseChannels(String json) {
         JsonElement root = JsonParser.parseString(json);
-        JsonArray array = root.isJsonArray() ? root.getAsJsonArray() : new JsonArray();
+        JsonArray rows = root.isJsonObject() && root.getAsJsonObject().has("data")
+                ? root.getAsJsonObject().getAsJsonArray("data")
+                : root.isJsonArray() ? root.getAsJsonArray() : new JsonArray();
         List<PlutoChannel> out = new ArrayList<>();
-        for (JsonElement el : array) {
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (JsonElement el : rows) {
             if (!el.isJsonObject()) continue;
             JsonObject c = el.getAsJsonObject();
-            if (c.has("isStitched") && !c.get("isStitched").getAsBoolean()) continue;
-            String id = c.has("_id") ? c.get("_id").getAsString().toLowerCase() : "";
-            if (!isPlutoId(id)) continue;
-            String name = c.has("name") ? c.get("name").getAsString() : "Pluto TV";
+            if (bool(c, "plutoOfficeOnly", false) || !bool(c, "isStitched", true)) continue;
+            String id = c.has("id") ? c.get("id").getAsString() : c.has("_id") ? c.get("_id").getAsString() : "";
+            id = id.toLowerCase();
+            String name = c.has("name") ? c.get("name").getAsString().trim() : "";
+            if (!isPlutoId(id) || name.isEmpty() || !seen.add(id)) continue;
             int number = c.has("number") && c.get("number").isJsonPrimitive() ? c.get("number").getAsInt() : Integer.MAX_VALUE;
             out.add(new PlutoChannel(id, name, number));
         }
@@ -184,13 +201,8 @@ final class PlutoClient {
         return out;
     }
 
-    static HttpRequest channelsRequest() {
-        return HttpRequest.newBuilder(URI.create(CHANNELS_URL))
-                .timeout(Duration.ofSeconds(30))
-                .header("User-Agent", USER_AGENT)
-                .header("Origin", "https://pluto.tv")
-                .header("Referer", "https://pluto.tv/")
-                .GET().build();
+    private static boolean bool(JsonObject o, String key, boolean fallback) {
+        return o.has(key) && o.get(key).isJsonPrimitive() ? o.get(key).getAsBoolean() : fallback;
     }
 
     static HttpClient http() { return HTTP; }
