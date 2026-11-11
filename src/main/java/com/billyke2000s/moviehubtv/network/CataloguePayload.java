@@ -17,7 +17,7 @@ public final class CataloguePayload {
         public static final StreamCodec<ByteBuf, Request> CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, Request::serial, ByteBufCodecs.stringUtf8(24), Request::route,
                 ByteBufCodecs.VAR_INT, Request::id, ByteBufCodecs.VAR_INT, Request::season,
-                ByteBufCodecs.VAR_INT, Request::page, ByteBufCodecs.stringUtf8(100), Request::query, Request::new);
+                ByteBufCodecs.VAR_INT, Request::page, ByteBufCodecs.stringUtf8(512), Request::query, Request::new);
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
     public record Reply(int serial, String json) implements CustomPacketPayload {
@@ -27,7 +27,7 @@ public final class CataloguePayload {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
     public static void register(RegisterPayloadHandlersEvent event) {
-        var r = event.registrar("tv-0.10.1");
+        var r = event.registrar("tv-0.11.0");
         r.playToServer(Request.TYPE, Request.CODEC, (p, c) -> c.enqueueWork(() ->
                 com.billyke2000s.moviehubtv.catalogue.CatalogueService.request(p, c.player())));
         r.playToClient(Reply.TYPE, Reply.CODEC, (p, c) -> c.enqueueWork(() -> receiver.accept(p)));

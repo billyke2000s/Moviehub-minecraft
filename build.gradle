@@ -111,6 +111,17 @@ sourceSets {
         runtimeClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
     }
 }
+dependencies {
+    regressionRuntimeOnly 'org.lwjgl:lwjgl:3.3.3:natives-linux'
+    regressionRuntimeOnly 'org.lwjgl:lwjgl-stb:3.3.3:natives-linux'
+    regressionRuntimeOnly 'org.lwjgl:lwjgl-opengl:3.3.3:natives-linux'
+    regressionRuntimeOnly 'org.lwjgl:lwjgl-glfw:3.3.3:natives-linux'
+}
+tasks.register('visualRegression', JavaExec) {
+    dependsOn regressionClasses
+    classpath = sourceSets.regression.runtimeClasspath
+    mainClass = 'com.billyke2000s.moviehubtv.client.VisualRegression'
+}
 tasks.register('freeVodRegression', JavaExec) {
     dependsOn regressionClasses
     classpath = sourceSets.regression.runtimeClasspath

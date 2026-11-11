@@ -34,7 +34,9 @@ public final class CatalogueService {
             ServerConfig.get(ServerConfig.PLAYLISTS, List.<String>of()).stream().limit(20).forEach(urls::add);
             out.add("playlists", urls); reply(p, q.serial(), out); return;
         }
-        if (!Set.of("movies", "shows", "anime", "movie", "tv", "seasons", "episodes", "resolve").contains(q.route())) return;
+        if (!Set.of("movies", "shows", "anime", "movie", "tv", "seasons", "episodes", "resolve",
+                "browse-menu", "browse-list", "facet-genres", "facet-providers", "facet-years",
+                "facet-countries", "facet-languages", "facet-regions", "facet-access").contains(q.route())) return;
         String key = ServerConfig.get(ServerConfig.TMDB_KEY, "").trim();
         if (key.isEmpty()) {
             reply(p, q.serial(), error("Set tmdbKey in the SERVER's config/moviehubtv-common.toml, then restart the server. No key is required on players' PCs.")); return;

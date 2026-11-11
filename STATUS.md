@@ -1,5 +1,29 @@
 # Status
 
+## 0.11.0 - nested browsing, posters and client video recovery
+
+- Movies, Shows and Anime open nested menus in the existing blue guide: popular, weekly trending,
+  top rated, upcoming, recent/airing, genres, providers, years, countries, languages, provider
+  regions and availability type. Search/TMDB-ID lookup remains available as a menu row.
+- Genres and providers come from TMDB rather than a short hardcoded provider list. The selected
+  provider region defaults to GB. Provider/genre/year/origin/language/availability filters combine;
+  Browse titles applies them. Weekly trending opens the actual weekly list and resets other filters.
+  Anime retains Japanese animation constraints and combines TV/film inventories. Lists paginate,
+  including provider/region menus. Availability is JustWatch data via TMDB, not subscription access.
+- Confirmed poster failure in the owner's client log: mixed-case filenames produced invalid
+  Minecraft resource IDs. Poster IDs now hash the original path to lowercase; URLs retain case.
+  JPEG downloads are converted to bounded PNG images for Minecraft's PNG-only decoder. Texture
+  registration exceptions are handled on the render thread, with retry instead of a stuck request.
+- WATERMeDIA raw GL uploads now preserve Minecraft texture bindings and unpack state. Picture
+  readiness requires allocated video texture storage, not just the player's initial texture name.
+  Keep the last frame while buffering; delay initial VOD control sync until a frame exists; recover
+  failed/frameless players with at most three starts and a three-second backoff. Resource reloads
+  release stale poster/video textures. These address observed local texture errors; the friend's
+  exact black-picture cause and in-game success remain unverified.
+- Update server and every client together: protocol tv-0.11.0. TMDB credentials remain host-only.
+- Validation pending: full CI build, browse regression fixtures and real Minecraft image/hidden-GL
+  regressions. No in-game multiplayer playback or visual test is claimed.
+
 ## 0.10.1 — speaker distance and audio startup
 
 - Speakers now have their own 32-block falloff and four-block full-volume zone; the TV retains

@@ -8,6 +8,19 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 
 ## Install
 
+Movies, Shows and Anime each have nested **Categories** inside the existing TV guide. Choose
+Popular, Trending, Top Rated, Upcoming, New Releases/Airing, Genres, Providers, Years, Countries
+or Languages. Provider region defaults to **GB** and can be changed in the menu. Provider lists
+(Netflix, Disney+, Prime Video and every other provider returned for that region/type) and genres
+load from TMDB. Combine filters, then select **Browse titles**. **Clear filters** resets the tab;
+**Search titles / TMDB ID** opens search. Back and the existing arrows navigate menus and pages.
+Weekly trending uses TMDB's weekly list and resets other filters. Anime stays Japanese animation.
+
+Provider categories describe availability, supplied by JustWatch via TMDB; choosing Netflix does
+not supply a Netflix subscription or video. Playback continues through the existing source picker.
+The server's TMDB key is used for all browsing; players never receive it. Version 0.11.0 requires
+the updated jar on the server and every client.
+
 1. Install NeoForge for Minecraft 1.21.1.
 2. Put both jars in your `mods` folder:
    - **MovieHub TV**: download `moviehubtv-<version>.jar` from the

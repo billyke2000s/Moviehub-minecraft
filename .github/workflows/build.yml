@@ -66,6 +66,9 @@ jobs:
       - name: Verify bundled MovieHub engine bytes and notices
         run: python3 tests/check_engine_bundle.py
 
+      - name: Real poster decoding and hidden OpenGL video regression
+        run: xvfb-run -a ./gradlew visualRegression
+
       - name: Real MovieHub free services smoke check (runner region)
         if: github.event_name != 'pull_request'
         continue-on-error: true

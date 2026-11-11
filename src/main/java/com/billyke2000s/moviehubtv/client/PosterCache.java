@@ -41,18 +41,25 @@ final class PosterCache {
                     if (response.statusCode() != 200) throw new IllegalStateException();
                     byte[] bytes = in.readNBytes(1048577);
                     if (bytes.length > 1048576) throw new IllegalStateException();
-                    image = NativeImage.read(new java.io.ByteArrayInputStream(bytes));
+                    image = NativeImage.read(new java.io.ByteArrayInputStream(PosterImage.png(bytes)));
                     if (image.getWidth() > 512 || image.getHeight() > 512) throw new IllegalStateException();
                 }
                 NativeImage result = image;
                 Minecraft.getInstance().execute(() -> {
                     if (version != generation || !CACHE.containsKey(path)) { result.close(); return; }
-                    ResourceLocation texture = MovieHubTV.id("poster/" + path.substring(1).replace('.', '_'));
-                    Minecraft.getInstance().getTextureManager().register(texture, new DynamicTexture(result));
-                    CACHE.put(path, new Entry(texture, 0));
+                    try {
+                        ResourceLocation texture = MovieHubTV.id(PosterImage.texturePath(path));
+                        Minecraft.getInstance().getTextureManager().register(texture, new DynamicTexture(result));
+                        CACHE.put(path, new Entry(texture, 0));
+                    } catch (Exception e) {
+                        result.close();
+                        CACHE.put(path, new Entry(null, System.currentTimeMillis() + 30000));
+                        MovieHubTV.LOGGER.warn("Poster texture registration failed ({})", e.getClass().getSimpleName());
+                    }
                 });
             } catch (Exception e) {
                 if (image != null) image.close();
+                MovieHubTV.LOGGER.debug("Poster download/decode failed ({})", e.getClass().getSimpleName());
                 Minecraft.getInstance().execute(() -> {
                     if (version == generation && CACHE.containsKey(path)) CACHE.put(path, new Entry(null, System.currentTimeMillis() + 30000));
                 });
