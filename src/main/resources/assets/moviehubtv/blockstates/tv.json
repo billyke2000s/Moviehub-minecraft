@@ -1,33 +1,483 @@
 {
   "variants": {
-    "facing=north,powered=false": {
+    "facing=north,powered=false,wall_column=single,wall_row=single": {
       "model": "moviehubtv:block/tv"
     },
-    "facing=north,powered=true": {
+    "facing=north,powered=false,wall_column=single,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_single_bottom"
+    },
+    "facing=north,powered=false,wall_column=single,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_single_middle"
+    },
+    "facing=north,powered=false,wall_column=single,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_single_top"
+    },
+    "facing=north,powered=false,wall_column=left,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_left_single"
+    },
+    "facing=north,powered=false,wall_column=left,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_left_bottom"
+    },
+    "facing=north,powered=false,wall_column=left,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_left_middle"
+    },
+    "facing=north,powered=false,wall_column=left,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_left_top"
+    },
+    "facing=north,powered=false,wall_column=middle,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_middle_single"
+    },
+    "facing=north,powered=false,wall_column=middle,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_middle_bottom"
+    },
+    "facing=north,powered=false,wall_column=middle,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_middle_middle"
+    },
+    "facing=north,powered=false,wall_column=middle,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_middle_top"
+    },
+    "facing=north,powered=false,wall_column=right,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_right_single"
+    },
+    "facing=north,powered=false,wall_column=right,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_right_bottom"
+    },
+    "facing=north,powered=false,wall_column=right,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_right_middle"
+    },
+    "facing=north,powered=false,wall_column=right,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_right_top"
+    },
+    "facing=north,powered=true,wall_column=single,wall_row=single": {
       "model": "moviehubtv:block/tv"
     },
-    "facing=east,powered=false": {
+    "facing=north,powered=true,wall_column=single,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_single_bottom"
+    },
+    "facing=north,powered=true,wall_column=single,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_single_middle"
+    },
+    "facing=north,powered=true,wall_column=single,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_single_top"
+    },
+    "facing=north,powered=true,wall_column=left,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_left_single"
+    },
+    "facing=north,powered=true,wall_column=left,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_left_bottom"
+    },
+    "facing=north,powered=true,wall_column=left,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_left_middle"
+    },
+    "facing=north,powered=true,wall_column=left,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_left_top"
+    },
+    "facing=north,powered=true,wall_column=middle,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_middle_single"
+    },
+    "facing=north,powered=true,wall_column=middle,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_middle_bottom"
+    },
+    "facing=north,powered=true,wall_column=middle,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_middle_middle"
+    },
+    "facing=north,powered=true,wall_column=middle,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_middle_top"
+    },
+    "facing=north,powered=true,wall_column=right,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_right_single"
+    },
+    "facing=north,powered=true,wall_column=right,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_right_bottom"
+    },
+    "facing=north,powered=true,wall_column=right,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_right_middle"
+    },
+    "facing=north,powered=true,wall_column=right,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_right_top"
+    },
+    "facing=east,powered=false,wall_column=single,wall_row=single": {
       "model": "moviehubtv:block/tv",
       "y": 90
     },
-    "facing=east,powered=true": {
+    "facing=east,powered=false,wall_column=single,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_single_bottom",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=single,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_single_middle",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=single,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_single_top",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=left,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_left_single",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=left,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_left_bottom",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=left,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_left_middle",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=left,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_left_top",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=middle,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_middle_single",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=middle,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_middle_bottom",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=middle,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_middle_middle",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=middle,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_middle_top",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=right,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_right_single",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=right,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_right_bottom",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=right,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_right_middle",
+      "y": 90
+    },
+    "facing=east,powered=false,wall_column=right,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_right_top",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=single,wall_row=single": {
       "model": "moviehubtv:block/tv",
       "y": 90
     },
-    "facing=south,powered=false": {
+    "facing=east,powered=true,wall_column=single,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_single_bottom",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=single,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_single_middle",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=single,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_single_top",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=left,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_left_single",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=left,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_left_bottom",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=left,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_left_middle",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=left,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_left_top",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=middle,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_middle_single",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=middle,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_middle_bottom",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=middle,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_middle_middle",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=middle,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_middle_top",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=right,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_right_single",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=right,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_right_bottom",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=right,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_right_middle",
+      "y": 90
+    },
+    "facing=east,powered=true,wall_column=right,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_right_top",
+      "y": 90
+    },
+    "facing=south,powered=false,wall_column=single,wall_row=single": {
       "model": "moviehubtv:block/tv",
       "y": 180
     },
-    "facing=south,powered=true": {
+    "facing=south,powered=false,wall_column=single,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_single_bottom",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=single,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_single_middle",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=single,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_single_top",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=left,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_left_single",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=left,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_left_bottom",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=left,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_left_middle",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=left,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_left_top",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=middle,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_middle_single",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=middle,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_middle_bottom",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=middle,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_middle_middle",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=middle,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_middle_top",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=right,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_right_single",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=right,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_right_bottom",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=right,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_right_middle",
+      "y": 180
+    },
+    "facing=south,powered=false,wall_column=right,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_right_top",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=single,wall_row=single": {
       "model": "moviehubtv:block/tv",
       "y": 180
     },
-    "facing=west,powered=false": {
+    "facing=south,powered=true,wall_column=single,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_single_bottom",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=single,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_single_middle",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=single,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_single_top",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=left,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_left_single",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=left,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_left_bottom",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=left,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_left_middle",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=left,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_left_top",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=middle,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_middle_single",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=middle,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_middle_bottom",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=middle,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_middle_middle",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=middle,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_middle_top",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=right,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_right_single",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=right,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_right_bottom",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=right,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_right_middle",
+      "y": 180
+    },
+    "facing=south,powered=true,wall_column=right,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_right_top",
+      "y": 180
+    },
+    "facing=west,powered=false,wall_column=single,wall_row=single": {
       "model": "moviehubtv:block/tv",
       "y": 270
     },
-    "facing=west,powered=true": {
+    "facing=west,powered=false,wall_column=single,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_single_bottom",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=single,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_single_middle",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=single,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_single_top",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=left,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_left_single",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=left,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_left_bottom",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=left,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_left_middle",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=left,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_left_top",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=middle,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_middle_single",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=middle,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_middle_bottom",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=middle,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_middle_middle",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=middle,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_middle_top",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=right,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_right_single",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=right,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_right_bottom",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=right,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_right_middle",
+      "y": 270
+    },
+    "facing=west,powered=false,wall_column=right,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_right_top",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=single,wall_row=single": {
       "model": "moviehubtv:block/tv",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=single,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_single_bottom",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=single,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_single_middle",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=single,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_single_top",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=left,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_left_single",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=left,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_left_bottom",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=left,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_left_middle",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=left,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_left_top",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=middle,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_middle_single",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=middle,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_middle_bottom",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=middle,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_middle_middle",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=middle,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_middle_top",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=right,wall_row=single": {
+      "model": "moviehubtv:block/tv_wall_right_single",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=right,wall_row=bottom": {
+      "model": "moviehubtv:block/tv_wall_right_bottom",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=right,wall_row=middle": {
+      "model": "moviehubtv:block/tv_wall_right_middle",
+      "y": 270
+    },
+    "facing=west,powered=true,wall_column=right,wall_row=top": {
+      "model": "moviehubtv:block/tv_wall_right_top",
       "y": 270
     }
   }

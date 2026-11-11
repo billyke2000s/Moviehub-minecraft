@@ -4,6 +4,7 @@ import com.billyke2000s.moviehubtv.ModRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayDeque;
@@ -69,6 +70,16 @@ public final class TvWall {
         int height = maxY - minY + 1;
         boolean wall = !tooBig && members.size() > 1 && members.size() == width * height
                 && width <= MAX_WIDTH && height <= MAX_HEIGHT;
+
+        // Join (or split) the frames first; same block, so the block entities stay.
+        for (Map.Entry<BlockPos, int[]> e : members.entrySet()) {
+            BlockState s = level.getBlockState(e.getKey());
+            TvBlock.WallPart col = wall ? TvBlock.WallPart.column(e.getValue()[0] - minX, width) : TvBlock.WallPart.SINGLE;
+            TvBlock.WallPart row = wall ? TvBlock.WallPart.row(e.getValue()[1] - minY, height) : TvBlock.WallPart.SINGLE;
+            if (s.getValue(TvBlock.WALL_COLUMN) != col || s.getValue(TvBlock.WALL_ROW) != row) {
+                level.setBlock(e.getKey(), s.setValue(TvBlock.WALL_COLUMN, col).setValue(TvBlock.WALL_ROW, row), Block.UPDATE_ALL);
+            }
+        }
 
         TvBlockEntity controller = null;
         for (Map.Entry<BlockPos, int[]> e : members.entrySet()) {

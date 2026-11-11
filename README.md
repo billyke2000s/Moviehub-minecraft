@@ -28,7 +28,7 @@ remote lets you point at the screen with a hand cursor and pick a channel.
 
 
 **Bigger screens:** place normal TVs next to each other (all facing the same way). Any full
-rectangle of them, from 2x1 up to 12 wide by 8 tall, becomes one screen: e.g. 3x1 ultra-wide,
+rectangle of them, from 2x1 up to 12 wide by 8 tall, becomes one screen with one joined frame (even when switched off): e.g. 3x1 ultra-wide,
 4x3, 8x5. Shapes that aren't a full rectangle stay as separate TVs until you fill them in.
 The bottom-left TV (as you look at it) runs the wall; the remote and right-clicking work
 anywhere on it. Breaking a TV splits the wall; whatever rectangles are left rejoin.

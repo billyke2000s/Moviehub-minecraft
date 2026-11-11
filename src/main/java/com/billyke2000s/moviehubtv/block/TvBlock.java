@@ -16,6 +16,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,10 +28,29 @@ import org.jetbrains.annotations.Nullable;
 public class TvBlock extends HorizontalDirectionalBlock implements EntityBlock {
     public static final MapCodec<TvBlock> CODEC = simpleCodec(TvBlock::new);
     public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
+    /** Where a normal TV sits in a TV wall, so the frames join into one big frame. */
+    public static final EnumProperty<WallPart> WALL_COLUMN = EnumProperty.create("wall_column", WallPart.class,
+            WallPart.SINGLE, WallPart.LEFT, WallPart.MIDDLE, WallPart.RIGHT);
+    public static final EnumProperty<WallPart> WALL_ROW = EnumProperty.create("wall_row", WallPart.class,
+            WallPart.SINGLE, WallPart.BOTTOM, WallPart.MIDDLE, WallPart.TOP);
+
+    public enum WallPart implements StringRepresentable {
+        SINGLE, LEFT, MIDDLE, RIGHT, BOTTOM, TOP;
+        @Override public String getSerializedName() { return name().toLowerCase(java.util.Locale.ROOT); }
+
+        static WallPart column(int x, int width) {
+            return width <= 1 ? SINGLE : x == 0 ? LEFT : x == width - 1 ? RIGHT : MIDDLE;
+        }
+        static WallPart row(int y, int height) {
+            return height <= 1 ? SINGLE : y == 0 ? BOTTOM : y == height - 1 ? TOP : MIDDLE;
+        }
+    }
 
     public TvBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(POWERED, false));
+        BlockState d = stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(POWERED, false);
+        if (d.hasProperty(WALL_COLUMN)) d = d.setValue(WALL_COLUMN, WallPart.SINGLE).setValue(WALL_ROW, WallPart.SINGLE);
+        registerDefaultState(d);
     }
 
     @Override
@@ -40,6 +61,8 @@ public class TvBlock extends HorizontalDirectionalBlock implements EntityBlock {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING, POWERED);
+        // Only the normal TV joins walls; the old crafted big TVs keep their own parts.
+        if (getClass() == TvBlock.class) builder.add(WALL_COLUMN, WALL_ROW);
     }
 
     /** Screen size in blocks. The normal TV is one block. */
