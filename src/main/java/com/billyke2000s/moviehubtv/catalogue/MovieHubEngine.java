@@ -63,12 +63,7 @@ public final class MovieHubEngine {
         boolean installed = check.waitFor(15, TimeUnit.SECONDS) && check.exitValue() == 0;
         if (!installed) {
             check.destroyForcibly();
-            Process pip = builder(found, dir, "-m", "pip", "install", "--disable-pip-version-check", "--target",
-                    dir.resolve("packages").toString(), "requests==2.32.5", "six==1.17.0").start();
-            if (!pip.waitFor(90, TimeUnit.SECONDS) || pip.exitValue() != 0) {
-                pip.destroyForcibly();
-                throw new IOException("MovieHub engine needs Python pip with requests==2.32.5 and six==1.17.0 on the server");
-            }
+            throw new IOException("Bundled MovieHub Python packages could not load. Reinstall the 0.10.0 jar and use Python 3.10+");
         }
         root = dir; python = found;
     }

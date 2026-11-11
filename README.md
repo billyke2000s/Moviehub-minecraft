@@ -69,9 +69,9 @@ TV walls regroup when their chunks load; there is no new rotation tool or wall-f
 - Set `tmdbKey` in the host's `config/moviehubtv-common.toml` to your TMDB API key or Read Access
   Token, then restart the host. The key and TMDB requests stay server-side. Players fetch poster
   images from TMDB's image CDN and video streams on their own connection.
-- The host needs **Python 3.10+ and pip**. The jar contains the actual MovieHub provider runtime;
+- The host needs **Python 3.10+**. The jar contains the actual MovieHub provider runtime and its portable dependencies;
   it detects python3 or python, or uses pythonCommand from the common config. On first source
-  search, missing requests/six packages install into config/moviehubtv-engine-0.10.0/packages.
+  search, its bundled requests/six packages extract into config/moviehubtv-engine-0.10.0/packages.
   This runs off the game thread and opens no public server port. Players need no Python install.
 - Source searching can continue for several minutes; choose a returned source immediately without
   waiting for every website. Provider names, quality and failures come from the real resolver.

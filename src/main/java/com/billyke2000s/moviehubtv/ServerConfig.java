@@ -15,7 +15,7 @@ public final class ServerConfig {
         TMDB_KEY = b.comment("TMDB v3 API key OR API Read Access Token. Set only on the server; never sent to players.")
                 .define("tmdbKey", "");
         PYTHON = b.comment("Python 3.10+ executable on this server. Blank auto-detects python3 / python.",
-                        "The bundled MovieHub resolver installs requests and six into its own private directory if missing.")
+                        "The bundled MovieHub resolver and portable dependencies extract into a private config directory.")
                 .define("pythonCommand", "");
         PLAYLISTS = b.comment("Additional public M3U URLs sent to players. Paste your MovieHub channel export URL here to mirror it.",
                         "Do not put private account/password URLs here: players must receive the URL to download the playlist.")

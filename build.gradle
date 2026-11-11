@@ -84,12 +84,16 @@ var engineBundle = tasks.register('bundleMovieHubEngine', Zip) {
     from(upstream.dir('python'))
     from(upstream.dir('assets/licenses/vod')) { into 'licenses' }
     from('src/engine')
+    from(layout.buildDirectory.dir('engine-packages')) { into 'packages' }
     exclude '**/__pycache__/**', '**/*.pyc'
     archiveFileName = 'moviehub-engine.zip'
     destinationDirectory = layout.buildDirectory.dir('generated/engine')
     doFirst {
         if (!upstream.file('python/moviehub_vod.py').asFile.exists()) {
             throw new GradleException('Checkout pinned MovieHub source in upstream-moviehub before building; see README.md')
+        }
+        if (!layout.buildDirectory.file('engine-packages/requests/__init__.py').get().asFile.exists()) {
+            throw new GradleException('Collect the portable Python dependencies in build/engine-packages before building; see CI workflow')
         }
     }
 }

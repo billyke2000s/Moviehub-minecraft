@@ -10,7 +10,7 @@ under `licenses/` and in the individual Python files. See that archive's NOTICE.
 Scrubs, Free99, ResolveURL and dependency provenance. The bridge source is in `src/engine`.
 The mod's original MIT licence does not describe every bundled component.
 
-Python itself is provided by the server host. Requests 2.32.5, six 1.17.0 and dependencies
-are installed into the engine's private packages directory if unavailable; their dist-info
-licences accompany those installed packages. WATERMeDIA is not included and remains a
+Python itself is provided by the server host. Portable Requests 2.32.5, six 1.17.0 and dependencies
+are bundled in the engine's private packages directory; their dist-info licences accompany
+those packages. WATERMeDIA is not included and remains a
 separate client installation.

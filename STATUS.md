@@ -10,7 +10,7 @@
 - The jar bundles the unmodified Python provider and host-resolver sources from MovieHub commit
   08343545afd7b535f8c9112f818ad60ee4432bd4, including the same 74 active website groups and their
   disabled/retired-site policy. This is actual provider-code reuse, not a new substitute source list.
-- Host needs Python 3.10+ and pip. Missing requests/six dependencies are installed into a private
+- Host needs Python 3.10+. Portable requests/six dependencies are bundled in a private
   engine directory, not system Python. Players need neither Python nor a TMDB key. Missing key,
   Python, no-match and provider failures are reported in the menu.
 - A client-local relay carries source headers, rewrites HLS links and uses MovieHub's PNG-segment
