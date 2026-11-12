@@ -15,7 +15,7 @@ import java.util.Map;
  * Joins normal TVs placed next to each other into one big screen ("TV wall").
  *
  * TVs that face the same way and touch side by side or above/below form a group. If the group fills
- * a supported rectangle (2x1, 2x2 or 3x2), every TV in it becomes part of
+ * a complete rectangle of any size up to {@link #MAX_WIDTH} x {@link #MAX_HEIGHT}, every TV in it becomes part of
  * one screen: the bottom-left TV (as the viewer sees it) is the controller, whose power and channel
  * the whole wall uses. Any other shape stays as separate TVs. Worked out on the server whenever a TV
  * is placed or removed, saved in each TV's block entity and synced to clients.
@@ -23,8 +23,9 @@ import java.util.Map;
 public final class TvWall {
     private TvWall() {}
 
-    public static final int MAX_WIDTH = 12; // Retained for reading existing wall metadata.
-    public static final int MAX_HEIGHT = 8;
+    /** Largest joined screen, in TVs. Bigger groups stay separate TVs. */
+    public static final int MAX_WIDTH = 16;
+    public static final int MAX_HEIGHT = 9;
     private static final int MAX_MEMBERS = MAX_WIDTH * MAX_HEIGHT;
 
     private static boolean isWallTv(BlockState state, Direction facing) {
@@ -114,10 +115,9 @@ public final class TvWall {
         }
     }
 
-    /** Player-facing TV sizes: single, wide, large and large-wide. */
+    /** Any complete rectangle from 1x1 up to MAX_WIDTH x MAX_HEIGHT, including tall and wide ones. */
     public static boolean supportedSize(int width, int height) {
-        return (width == 1 && height == 1) || (width == 2 && height == 1)
-                || (width == 2 && height == 2) || (width == 3 && height == 2);
+        return width >= 1 && height >= 1 && width <= MAX_WIDTH && height <= MAX_HEIGHT;
     }
 
     /** Position of wall member (x, y) for a wall whose controller is at controller. */

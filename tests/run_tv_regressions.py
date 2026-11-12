@@ -69,8 +69,11 @@ public class Regression {
    var l=wall(f,size[0],size[1]);check(TvWall.recompute(l,ORIGIN),"regroup");joined(l,f,size[0],size[1]);
   }
   System.out.println("PASS: 1, 2, 4 and 6 TVs share the correct seamless frame in all four directions while off");
-  for(int[]size:new int[][]{{1,2},{3,1},{2,3},{4,2}}){var l=wall(Direction.NORTH,size[0],size[1]);TvWall.recompute(l,ORIGIN);for(var e:l.entities.values())check(e.w==1&&e.h==1,"unsupported shapes must not become another TV size");}
-  System.out.println("PASS: unsupported rectangles stay separate instead of creating additional sizes");
+  for(Direction f:Direction.values())for(int[]size:new int[][]{{1,2},{3,1},{2,3},{4,2},{5,3},{1,9},{16,1},{16,9}}){var l=wall(f,size[0],size[1]);check(TvWall.recompute(l,ORIGIN),"regroup");joined(l,f,size[0],size[1]);}
+  System.out.println("PASS: any complete rectangle up to 16x9 joins, tall and wide, in all four directions");
+  for(int[]size:new int[][]{{17,1},{1,10},{17,9}}){var l=wall(Direction.NORTH,size[0],size[1]);TvWall.recompute(l,ORIGIN);for(var e:l.entities.values())check(e.w==1&&e.h==1,"oversized groups stay separate");}
+  var lshape=wall(Direction.NORTH,3,2);lshape.setBlock(pos(Direction.NORTH,2,1),new Block().defaultBlockState(),3);TvWall.recompute(lshape,ORIGIN);for(var e:lshape.entities.values())check(e.w==1&&e.h==1,"incomplete rectangles stay separate");
+  System.out.println("PASS: oversized groups and incomplete rectangles stay separate");
   var l=wall(Direction.EAST,3,2);TvWall.recompute(l,ORIGIN);l.unloaded.add(pos(Direction.EAST,2,1));BigTvConverter.queueRegroup(l,ORIGIN);tick(l);check(l.entities.get(ORIGIN).w==3,"partial load must preserve saved wall");l.unloaded.clear();tick(l);joined(l,Direction.EAST,3,2);
   l.setBlock(pos(Direction.EAST,2,1),new Block().defaultBlockState(),3);TvWall.recomputeAround(l,pos(Direction.EAST,2,1),Direction.EAST);tick(l);check(l.entities.get(ORIGIN).w==1,"incomplete group splits");l.setBlock(pos(Direction.EAST,2,1),ModRegistry.TV.get().defaultBlockState().setValue(TvBlock.FACING,Direction.EAST),3);BigTvConverter.queueRegroup(l,pos(Direction.EAST,2,1));tick(l);joined(l,Direction.EAST,3,2);
   System.out.println("PASS: delayed chunks preserve walls; removing/replacing a part splits and rejoins");
@@ -91,7 +94,7 @@ public class Regression {
   for(var e:stale.states.entrySet())e.setValue(e.getValue().setValue(TvBlock.FACING,Direction.EAST));
   for(var p:stale.states.keySet())check(TvScreenLayout.resolve(stale,p)==null,"3x2 metadata on perpendicular physical blocks must never draw into air");
   for(var p:stale.states.keySet())BigTvConverter.queueRegroup(stale,p);tick(stale);
-  for(var p:stale.states.keySet()){var layout=TvScreenLayout.resolve(stale,p);check(layout!=null&&layout.width()==1&&layout.height()==1,"repair must use actual supported geometry, not guess an orientation");}
+  for(var p:stale.states.keySet()){var layout=TvScreenLayout.resolve(stale,p);check(layout!=null&&layout.width()==1&&layout.height()==2,"repair must use actual geometry (stacked pairs seen from the side), not guess an orientation");}
   var invalid=stale.entities.get(ORIGIN);invalid.x=-1;check(TvScreenLayout.resolve(stale,ORIGIN)==null,"invalid wall offset");invalid.x=0;
   System.out.println("PASS: perpendicular saved layout rejected before drawing; server repair produces valid physical screens");
  }

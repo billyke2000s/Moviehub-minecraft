@@ -27,7 +27,7 @@ public final class CataloguePayload {
         public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
     public static void register(RegisterPayloadHandlersEvent event) {
-        var r = event.registrar("tv-0.11.1");
+        var r = event.registrar("tv-0.12.0");
         r.playToServer(Request.TYPE, Request.CODEC, (p, c) -> c.enqueueWork(() ->
                 com.billyke2000s.moviehubtv.catalogue.CatalogueService.request(p, c.player())));
         r.playToClient(Reply.TYPE, Reply.CODEC, (p, c) -> c.enqueueWork(() -> receiver.accept(p)));

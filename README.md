@@ -61,16 +61,14 @@ Up to 8 speakers per TV block.
 **TV sizes:** place normal TVs with the screen facing you. Matching TVs that touch in the
 same plane join into one TV, including one outer frame when switched off:
 
-| TVs | Layout |
-| --- | --- |
-| 1 | 1 wide × 1 high |
-| 2 | 2 wide × 1 high |
-| 4 | 2 wide × 2 high |
-| 6 | 3 wide × 2 high |
+Any complete rectangle joins, from a single TV up to **16 wide × 9 high**: 2×1, 3×3, 5×2,
+1×4 (tall), 16×9 (cinema) and so on. The picture keeps its shape and fits inside the screen,
+so very tall or very thin screens get black bars; the guide shrinks to fit narrow screens.
+Bigger groups stay as separate TVs.
 
 Place all parts while facing the same direction. The screen faces opposite your horizontal
 heading in all four compass directions, regardless of which block face you click.
-Incomplete shapes and other rectangles stay separate until a supported rectangle is complete.
+Incomplete shapes (an L, a rectangle with a gap) stay separate until the rectangle is complete.
 The bottom-left TV controls the joined screen. Old crafted big TVs convert to the equivalent
 normal-TV group when loaded, preserving facing, channel and power.
 
