@@ -111,7 +111,9 @@ public final class TmdbGateway {
         JsonObject data = get(type + "/" + positive(id) + "?append_to_response=external_ids", key);
         JsonObject info = new JsonObject();
         info.addProperty("title", text(data, type.equals("movie") ? "title" : "name"));
-        info.addProperty("localTitle", text(data, type.equals("movie") ? "original_title" : "original_name"));
+        // The scrapers treat localTitle as the title in the viewer's language. Android MovieHub sends the
+        // English title here; the original-language title made some sites return native-language releases.
+        info.addProperty("localTitle", text(data, type.equals("movie") ? "title" : "name"));
         String date = text(data, type.equals("movie") ? "release_date" : "first_air_date");
         info.addProperty("year", date.length() >= 4 ? date.substring(0, 4) : "");
         info.addProperty("imdb", data.has("external_ids") ? text(data.getAsJsonObject("external_ids"), "imdb_id") : text(data, "imdb_id"));

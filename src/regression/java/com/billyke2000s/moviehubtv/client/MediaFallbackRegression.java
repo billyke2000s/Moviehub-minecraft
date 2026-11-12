@@ -26,6 +26,27 @@ public final class MediaFallbackRegression {
         check(MediaSources.parse("").isEmpty() && MediaSources.parse("not json").isEmpty()
                 && MediaSources.parse("[1,\"x\"]").isEmpty(), "Unreadable lists are empty, not a crash");
         System.out.println("PASS: per-PC source fallback order, retry bounds and source-list parsing");
+
+        String master = String.join("\n",
+                "#EXTM3U",
+                "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"aud\",NAME=\"Japanese\",LANGUAGE=\"ja\",DEFAULT=YES,AUTOSELECT=YES,URI=\"ja.m3u8\"",
+                "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"aud\",NAME=\"English\",LANGUAGE=\"en\",DEFAULT=NO,URI=\"en.m3u8\"",
+                "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"subs\",NAME=\"English\",LANGUAGE=\"en\",DEFAULT=NO,URI=\"en.vtt.m3u8\"",
+                "#EXT-X-STREAM-INF:BANDWIDTH=1000,AUDIO=\"aud\",SUBTITLES=\"subs\"",
+                "video.m3u8");
+        String out = EnglishTracks.prefer(master);
+        String[] l = out.split("\n");
+        check(l[1].contains("DEFAULT=NO") && l[1].contains("AUTOSELECT=NO"), "Original-language audio is no longer the default");
+        check(l[2].contains("DEFAULT=YES") && l[2].contains("AUTOSELECT=YES") && l[2].contains("URI=\"en.m3u8\""), "English audio becomes the default");
+        check(l[3].contains("DEFAULT=NO"), "No forced subtitles over English audio");
+        check(l[5].equals("video.m3u8") && l.length == 6, "Rest of the playlist is unchanged");
+        String noEnglishAudio = master.replace("NAME=\"English\",LANGUAGE=\"en\",DEFAULT=NO,URI=\"en.m3u8\"",
+                "NAME=\"Korean\",LANGUAGE=\"ko\",DEFAULT=NO,URI=\"ko.m3u8\"");
+        String subs = EnglishTracks.prefer(noEnglishAudio).split("\n")[3];
+        check(subs.contains("DEFAULT=YES") && subs.contains("AUTOSELECT=YES"), "English subtitles switch on when there is no English audio");
+        check(EnglishTracks.prefer("#EXTM3U\n#EXTINF:4,\nseg1.ts").equals("#EXTM3U\n#EXTINF:4,\nseg1.ts"), "Media playlists untouched");
+        check(String.join(" ", EnglishTracks.vlcOptions()).contains(":audio-language=en"), "VLC prefers English audio tracks");
+        System.out.println("PASS: English audio/subtitle preference in HLS playlists and VLC options");
     }
 
     public static void main(String[] args) { run(); }

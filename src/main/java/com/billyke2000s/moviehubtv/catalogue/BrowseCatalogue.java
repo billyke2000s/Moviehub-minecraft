@@ -41,7 +41,9 @@ public final class BrowseCatalogue {
         JsonObject state = f.json();
         boolean selected = state.has(field) && state.get(field).getAsString().equals(value.toString());
         if (value instanceof Number n) state.addProperty(field, n); else state.addProperty(field, value.toString());
-        return row(title, selected ? "Selected - choose Browse titles to view results" : "Select, then Browse titles; filters can be combined", "browse-menu", state);
+        // Opens the titles straight away. Categories from the list returns to the menu with this filter kept,
+        // so filters still combine.
+        return row(title, selected ? "Current filter - show titles" : "Show titles; Categories adds more filters", "browse-list", state);
     }
     public static JsonObject catalogue(String route, String query, int page, String key) throws Exception {
         return catalogue(route, query, page, path -> TmdbGateway.getJson(path, key));
@@ -51,12 +53,13 @@ public final class BrowseCatalogue {
         if (route.equals("browse-list")) return titles(f, page, source);
         if (route.equals("browse-menu")) {
             rows.add(row("Browse titles", summary(f), "browse-list", f.json()));
-            rows.add(row("Popular", "Browse by popularity", "browse-menu", changed(f, "mode", "popular")));
+            rows.add(row("Popular", "Most popular titles", "browse-list", changed(f, "mode", "popular")));
             JsonObject trending = new Filters(f.section, "trending", 0, 0, 0, "", "", f.region, "all").json();
-            rows.add(row("Trending this week", "Weekly trending; resets other filters", "browse-list", trending));
-            rows.add(row("Top rated", "Highest rated; at least 200 votes", "browse-menu", changed(f, "mode", "top")));
-            rows.add(row("Upcoming", "Future releases / new series", "browse-menu", changed(f, "mode", "upcoming")));
-            rows.add(row("New releases / airing", "Recent movies and currently airing series", "browse-menu", changed(f, "mode", "recent")));
+            rows.add(row("Trending this week", f.section.equals("anime") ? "Most popular anime airing now; resets other filters"
+                    : "Weekly trending; resets other filters", "browse-list", trending));
+            rows.add(row("Top rated", "Highest rated; at least 200 votes", "browse-list", changed(f, "mode", "top")));
+            rows.add(row("Upcoming", "Future releases / new series", "browse-list", changed(f, "mode", "upcoming")));
+            rows.add(row("New releases / airing", "Recent movies and currently airing series", "browse-list", changed(f, "mode", "recent")));
             for (String facet : List.of("genres", "providers", "years", "countries", "languages", "regions", "access")) {
                 JsonObject item = row(switch (facet) { case "regions" -> "Provider region"; case "access" -> "Availability type"; default -> Character.toUpperCase(facet.charAt(0)) + facet.substring(1); }, summary(f), "facet-" + facet, f.json());
                 if (facet.equals("providers")) item.addProperty("overview", "Availability by JustWatch via TMDB");
@@ -113,13 +116,29 @@ public final class BrowseCatalogue {
                 + (f.country.isEmpty() ? "" : " | " + f.country) + (f.language.isEmpty() ? "" : " | " + f.language)
                 + (f.access.equals("all") ? "" : " | " + f.access);
     }
+    /** TMDB's TV and film genre lists differ; the nearest equivalent for the other type, or -1 if none. */
+    private static final Map<Integer, Integer> MOVIE_TO_TV = Map.of(28, 10759, 12, 10759, 878, 10765, 14, 10765, 10752, 10768);
+    private static final Map<Integer, Integer> TV_TO_MOVIE = Map.of(10759, 28, 10765, 878, 10768, 10752, 10762, 10751);
+    private static final Set<Integer> TV_ONLY = Set.of(10759, 10762, 10763, 10764, 10765, 10766, 10767, 10768);
+    private static final Set<Integer> MOVIE_ONLY = Set.of(28, 12, 14, 36, 27, 10402, 10749, 878, 10770, 53, 10752);
+    static int genreFor(String type, int genre) {
+        if (genre <= 0) return genre;
+        if (type.equals("tv")) return MOVIE_ONLY.contains(genre) ? MOVIE_TO_TV.getOrDefault(genre, -1) : genre;
+        return TV_ONLY.contains(genre) ? TV_TO_MOVIE.getOrDefault(genre, -1) : genre;
+    }
+
+    /** The TMDB path for this page of titles, or null when this type has nothing matching (a genre with no equivalent). */
     public static String discoverPath(Filters f, String type, int page) {
         if (!f.types().contains(type)) throw new IllegalArgumentException();
-        if (f.mode.equals("trending")) return "trending/" + type + "/week?page=" + Math.max(1, Math.min(500, page));
+        boolean anime = f.section.equals("anime");
+        // TMDB's weekly chart is mostly non-anime, so filtering it left Anime > Trending nearly empty.
+        if (f.mode.equals("trending") && !anime) return "trending/" + type + "/week?page=" + Math.max(1, Math.min(500, page));
+        int genre = genreFor(type, f.genre);
+        if (genre < 0) return null;
         StringBuilder p = new StringBuilder("discover/" + type + "?include_adult=false&page=" + Math.max(1, Math.min(500, page)));
         p.append("&sort_by=").append(f.mode.equals("top") ? "vote_average.desc&vote_count.gte=200" : "popularity.desc");
-        if (f.section.equals("anime")) p.append("&with_genres=16").append(f.genre > 0 && f.genre != 16 ? "," + f.genre : "").append("&with_original_language=ja");
-        else { if (f.genre > 0) p.append("&with_genres=").append(f.genre); if (!f.language.isEmpty()) p.append("&with_original_language=").append(f.language); }
+        if (anime) p.append("&with_genres=16").append(genre > 0 && genre != 16 ? "," + genre : "").append("&with_original_language=ja");
+        else { if (genre > 0) p.append("&with_genres=").append(genre); if (!f.language.isEmpty()) p.append("&with_original_language=").append(f.language); }
         if (f.provider > 0) p.append("&with_watch_providers=").append(f.provider);
         p.append("&watch_region=").append(f.region);
         if (!f.access.equals("all")) p.append("&with_watch_monetization_types=").append(f.access);
@@ -127,6 +146,11 @@ public final class BrowseCatalogue {
         if (!f.country.isEmpty()) p.append("&with_origin_country=").append(f.country);
         String date = type.equals("movie") ? "primary_release_date" : "first_air_date";
         if (f.mode.equals("upcoming")) p.append("&").append(date).append(".gte=").append(LocalDate.now().plusDays(1));
+        if (f.mode.equals("trending")) { // anime only: popular now
+            date = type.equals("movie") ? "primary_release_date" : "air_date";
+            p.append("&").append(date).append(".gte=").append(LocalDate.now().minusDays(type.equals("movie") ? 365 : 7));
+            p.append("&").append(date).append(".lte=").append(LocalDate.now());
+        }
         if (f.mode.equals("recent")) {
             date = type.equals("movie") ? "primary_release_date" : "air_date";
             p.append("&").append(date).append(".gte=").append(LocalDate.now().minusDays(type.equals("movie") ? 90 : 7));
@@ -137,7 +161,9 @@ public final class BrowseCatalogue {
     private static JsonObject titles(Filters f, int page, Source source) throws Exception {
         JsonArray items = new JsonArray(); int pages = 1;
         for (String type : f.types()) {
-            JsonObject data = source.get(discoverPath(f, type, page)).getAsJsonObject();
+            String path = discoverPath(f, type, page);
+            if (path == null) continue;
+            JsonObject data = source.get(path).getAsJsonObject();
             pages = Math.max(pages, TmdbGateway.integer(data, "total_pages", 1));
             for (JsonElement e : TmdbGateway.array(data, "results")) {
                 JsonObject o = e.getAsJsonObject();

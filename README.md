@@ -12,14 +12,17 @@ Movies, Shows and Anime each have nested **Categories** inside the existing TV g
 Popular, Trending, Top Rated, Upcoming, New Releases/Airing, Genres, Providers, Years, Countries
 or Languages. Provider region defaults to **GB** and can be changed in the menu. Provider lists
 (Netflix, Disney+, Prime Video and every other provider returned for that region/type) and genres
-load from TMDB. Combine filters, then select **Browse titles**. **Clear filters** resets the tab;
+load from TMDB. Every option opens its titles straight away; **Categories** goes back to the menu keeping
+those filters, so they combine. **Clear filters** resets the tab;
 **Search titles / TMDB ID** opens search. Back and the existing arrows navigate menus and pages.
 Weekly trending uses TMDB's weekly list and resets other filters. Anime stays Japanese animation.
 
 Provider categories describe availability, supplied by JustWatch via TMDB; choosing Netflix does
 not supply a Netflix subscription or video. Playback continues through the existing source picker.
-The server's TMDB key is used for all browsing; players never receive it. Version 0.11.1 requires
+The server's TMDB key is used for all browsing; players never receive it. Version 0.12.0 requires
 the updated jar on the server and every client.
+For non-English titles, English-labelled sources are listed first and VLC picks English audio
+(or English subtitles when there is no English audio) where the source has them.
 
 1. Install NeoForge for Minecraft 1.21.1.
 2. Put both jars in your `mods` folder:

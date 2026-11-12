@@ -49,5 +49,35 @@ final class BrowseRegression {
         check(TmdbGateway.array(titles,"items").size() == 2, "Anime merges TV and films while excluding non-Japanese animation");
         check(TmdbGateway.text(TmdbGateway.array(titles,"items").get(0).getAsJsonObject(), "poster").equals("/MixedCASE.jpg"), "Posters survive filtered browsing");
         System.out.println("PASS: nested browse menus, all provider pages, Netflix IDs, region, combined filters, anime and validation");
+
+        // Audit fixes: every mode row and every filter option opens a list of titles, not the same menu again.
+        for (JsonElement e : TmdbGateway.array(menu, "items")) {
+            JsonObject row = e.getAsJsonObject();
+            String title = TmdbGateway.text(row, "title");
+            if (List.of("Popular", "Top rated", "Upcoming", "New releases / airing", "Trending this week", "Browse titles").contains(title))
+                check(TmdbGateway.text(row, "next").equals("browse-list"), "Mode row opens titles: " + title);
+        }
+        for (String facet : List.of("genres", "providers", "years", "countries", "languages", "regions", "access"))
+            for (JsonElement e : TmdbGateway.array(BrowseCatalogue.catalogue("facet-" + facet, state, 1, source), "items"))
+                check(TmdbGateway.text(e.getAsJsonObject(), "next").equals("browse-list"), "Filter option opens titles: " + facet);
+        // Anime trending uses anime discovery, not the general weekly chart filtered down to nothing.
+        var animeTrending = new BrowseCatalogue.Filters("anime", "trending", 0, 0, 0, "", "", "GB", "all");
+        String trendTv = BrowseCatalogue.discoverPath(animeTrending, "tv", 1);
+        check(trendTv.startsWith("discover/tv?") && trendTv.contains("with_genres=16") && trendTv.contains("with_original_language=ja")
+                && trendTv.contains("air_date.gte="), "Anime trending discovers popular airing anime");
+        check(BrowseCatalogue.discoverPath(new BrowseCatalogue.Filters("movies", "trending", 0, 0, 0, "", "", "GB", "all"), "movie", 1)
+                .startsWith("trending/movie/week"), "Other tabs keep TMDB's weekly chart");
+        // Anime mixes TV and film genre lists: map to the equivalent, or skip a type with no equivalent.
+        var animeAction = new BrowseCatalogue.Filters("anime", "popular", 10759, 0, 0, "", "", "GB", "all");
+        check(BrowseCatalogue.discoverPath(animeAction, "tv", 1).contains("with_genres=16,10759"), "TV genre kept for anime TV");
+        check(BrowseCatalogue.discoverPath(animeAction, "movie", 1).contains("with_genres=16,28"), "TV Action & Adventure maps to film Action");
+        var animeHorror = new BrowseCatalogue.Filters("anime", "popular", 27, 0, 0, "", "", "GB", "all");
+        check(BrowseCatalogue.discoverPath(animeHorror, "tv", 1) == null, "Film-only genre skips TV instead of an empty query");
+        calls.clear();
+        BrowseCatalogue.catalogue("browse-list", animeHorror.json().toString(), 1, source);
+        check(calls.size() == 1 && calls.get(0).startsWith("discover/movie?"), "Only the type with that genre is queried");
+        check(BrowseCatalogue.discoverPath(new BrowseCatalogue.Filters("shows", "popular", 10765, 0, 0, "", "", "GB", "all"), "tv", 1)
+                .contains("with_genres=10765"), "Shows keep their own genre IDs");
+        System.out.println("PASS: menu audit - options open titles, anime trending, anime genre equivalents");
     }
 }

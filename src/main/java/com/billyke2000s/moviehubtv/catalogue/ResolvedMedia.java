@@ -57,9 +57,13 @@ public final class ResolvedMedia {
         out.add(JsonParser.parseString(chosen.json));
         int chars = chosen.json.length();
         Set<String> urls = new HashSet<>(List.of(chosen.url));
-        for (Entry e : ITEMS.values()) {
+        // Fallbacks: English-labelled sources first, other-language ones last, otherwise arrival order.
+        List<Entry> fallbacks = new ArrayList<>();
+        for (Entry e : ITEMS.values()) if (e != chosen && e.group.equals(chosen.group) && e.expires > now) fallbacks.add(e);
+        fallbacks.sort(Comparator.comparingInt((Entry e) -> -SourceLanguage.rank(JsonParser.parseString(e.json).getAsJsonObject())));
+        for (Entry e : fallbacks) {
             if (out.size() >= MAX_SOURCES) break;
-            if (e == chosen || !e.group.equals(chosen.group) || e.expires <= now || !urls.add(e.url)) continue;
+            if (!urls.add(e.url)) continue;
             if (chars + e.json.length() + 1 > MAX_CHARS) continue;
             out.add(JsonParser.parseString(e.json));
             chars += e.json.length() + 1;

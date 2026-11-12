@@ -184,7 +184,7 @@ final class TvVideoManager {
                 s.registered = true;
             }
             player.setVolume(0);
-            player.start(URI.create(url));
+            player.start(URI.create(url), EnglishTracks.vlcOptions());
             } catch (Exception e) {
                 s.releasePlayback();
                 s.retryAt = System.currentTimeMillis() + 3000;

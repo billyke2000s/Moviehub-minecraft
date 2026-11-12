@@ -99,7 +99,8 @@ final class LocalMediaRelay implements AutoCloseable {
                 if (hls) {
                     byte[] bytes = in.readNBytes(2000001);
                     if (bytes.length > 2000000) throw new IOException("Playlist limit");
-                    byte[] body = rewrite(new String(bytes, StandardCharsets.UTF_8), response.uri()).getBytes(StandardCharsets.UTF_8);
+                    String playlist = EnglishTracks.prefer(new String(bytes, StandardCharsets.UTF_8));
+                    byte[] body = rewrite(playlist, response.uri()).getBytes(StandardCharsets.UTF_8);
                     exchange.getResponseHeaders().set("Content-Type", "application/vnd.apple.mpegurl");
                     exchange.sendResponseHeaders(200, exchange.getRequestMethod().equals("HEAD") ? -1 : body.length);
                     if (!exchange.getRequestMethod().equals("HEAD")) exchange.getResponseBody().write(body);

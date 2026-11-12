@@ -66,6 +66,26 @@ public final class SourceGroupRegression {
         UUID steady = UUID.randomUUID();
         for (int i = 0; i < 200; i++) check(allowance.allow(steady, t + i * 300L + (i % 2 == 0 ? 120 : -120)), "Jittered client pace is never rejected");
         System.out.println("PASS: per-title source groups, late sources reaching tuned TVs, size cap and menu request allowance");
+
+        java.util.function.BiFunction<String, String, JsonObject> labelled = (url, info) -> {
+            JsonObject s = source(url); s.addProperty("info", info); s.addProperty("providerName", "site.example"); return s; };
+        check(SourceLanguage.rank(labelled.apply("https://x.example/1", "English")) == SourceLanguage.ENGLISH, "English label");
+        check(SourceLanguage.rank(labelled.apply("https://x.example/1", "Hindi")) == SourceLanguage.OTHER, "Hindi label");
+        check(SourceLanguage.rank(labelled.apply("https://x.example/1", "Castellano / Latino")) == SourceLanguage.OTHER, "Spanish label");
+        check(SourceLanguage.rank(labelled.apply("https://x.example/1", "Dual Audio")) == SourceLanguage.UNKNOWN, "Dual audio may include English");
+        check(SourceLanguage.rank(labelled.apply("https://x.example/1", "")) == SourceLanguage.UNKNOWN, "Unlabelled stays in the middle");
+        ResolvedMedia.clear();
+        String chosen = ResolvedMedia.add(labelled.apply("https://c.example/0", ""), "lang");
+        ResolvedMedia.add(labelled.apply("https://h.example/1", "Hindi"), "lang");
+        ResolvedMedia.add(labelled.apply("https://u.example/2", ""), "lang");
+        ResolvedMedia.add(labelled.apply("https://e.example/3", "English"), "lang");
+        JsonArray order = find(chosen);
+        String urls = order.toString();
+        check(order.get(0).getAsJsonObject().get("url").getAsString().contains("c.example"), "Player's choice still plays first");
+        check(urls.indexOf("e.example") < urls.indexOf("u.example") && urls.indexOf("u.example") < urls.indexOf("h.example"),
+                "Fallbacks: English, then unlabelled, then other languages");
+        ResolvedMedia.clear();
+        System.out.println("PASS: English-first source ordering from website language labels");
     }
 
     public static void main(String[] args) { run(); }

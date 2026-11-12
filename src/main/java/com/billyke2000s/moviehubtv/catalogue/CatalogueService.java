@@ -72,6 +72,7 @@ public final class CatalogueService {
                                 item.addProperty("subtitle", TmdbGateway.text(source, "quality") + " - " + TmdbGateway.text(source, "info"));
                                 item.addProperty("poster", TmdbGateway.text(info, "poster"));
                                 item.addProperty("play", "vod:moviehub:" + id + "|" + displayTitle);
+                                item.addProperty("languageRank", SourceLanguage.rank(source));
                                 out.add("source", item);
                             } catch (Exception ignored) { return; }
                         } else if (type.equals("inventory")) {

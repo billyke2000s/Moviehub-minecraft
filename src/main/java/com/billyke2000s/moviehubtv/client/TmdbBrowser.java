@@ -49,7 +49,11 @@ final class TmdbBrowser {
             }
             if (data.has("source")) {
                 if (!sourcesFound) { items.clear(); scroll = 0; sourcesFound = true; }
-                items.add(data.getAsJsonObject("source"));
+                // English-labelled sources first, other-language ones last; otherwise in arrival order.
+                JsonObject source = data.getAsJsonObject("source");
+                int rank = integer(source, "languageRank", 1), at = items.size();
+                while (at > 0 && integer(items.get(at - 1), "languageRank", 1) < rank) at--;
+                items.add(at, source);
             }
             if (data.has("items")) {
                 items = new ArrayList<>();

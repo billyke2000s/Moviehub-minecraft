@@ -1,5 +1,44 @@
 # Status
 
+## 0.12.0 - any-size TVs, menu audit and English playback
+
+- TVs: any complete rectangle from 1x1 to 16 wide x 9 high joins into one screen (was only 1x1, 2x1,
+  2x2, 3x2), including tall and thin shapes. Larger groups and incomplete shapes stay separate.
+  Screen geometry, remote aiming and the 16 frame models already handled any size. The
+  perpendicular-repair test now expects the real 1x2 stacked pairs that the wider rule allows.
+- Menu audit (all browse/facet/search/season/episode routes checked against TMDB's API rules):
+  - Popular, Top rated, Upcoming and New releases only changed a hidden setting and reloaded the
+    same menu; they now open their titles. Every genre/provider/year/country/language/region/
+    availability option also opens titles directly; Categories from a list keeps its filters, so
+    filters still combine.
+  - Anime > Trending this week filtered TMDB's general weekly chart down to Japanese animation and
+    was usually nearly empty; it now lists the most popular anime airing in the last week (films:
+    released in the last year).
+  - Anime mixes TMDB's TV and film genre lists; a TV-only or film-only genre silently returned
+    nothing for the other type. Equivalents are mapped (Action & Adventure <-> Action, Sci-Fi &
+    Fantasy <-> Science Fiction, War & Politics <-> War, Kids -> Family); types with no equivalent
+    are skipped instead of queried.
+  - No other route errors found: search, TMDB ID lookup, seasons, episodes, paging, region,
+    provider and availability parameters match TMDB's documented fields. Not checked against live
+    TMDB from here (no key in this environment).
+- English playback for non-English titles:
+  - Bug: the server sent the original-language title as localTitle, which the scrapers treat as the
+    viewer's-language title; some sites searched in Japanese/Korean script. Now the English title,
+    as Android MovieHub sends.
+  - Sources labelled English by their website come first in the list and in each player's fallback
+    order; sources labelled with another language (Hindi, German, Spanish...) come last. Most
+    sources have no label and keep arrival order. "Dual"/"Multi" are treated as unlabelled.
+  - VLC is asked for English audio and English subtitles when a source has several tracks
+    (subtitles also show over English audio if a source has both).
+  - HLS master playlists: an English audio rendition becomes the default; with no English audio,
+    English subtitles are switched on.
+  - Cannot add English where a website only has the original audio and no English subtitles.
+- Protocol tv-0.12.0: update the server and every client.
+- Verified locally: TV wall regressions incl. all sizes up to 16x9 in four directions, oversized
+  and incomplete shapes; menu regressions for every new route rule; English-track rewriting,
+  language ranking and fallback ordering; existing suites. **No in-game test of large screens,
+  menus or playback language.**
+
 ## 0.11.2 - louder speakers with a longer reach
 
 - Reported: speakers sounded about the same as the TV and went quiet a short distance away.
