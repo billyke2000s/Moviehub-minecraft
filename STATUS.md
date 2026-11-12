@@ -29,9 +29,10 @@
 - Update server and every client together: protocol tv-0.11.1 (the source list format changed).
 - Verified locally: new fallback-order, retry-bound, source-list parsing, source-group, late-source
   notification, size-cap and request-allowance regressions pass (pure Java, with a stub for the one
-  TMDB helper); existing TV/wall and speaker regressions pass. Full build not possible here
-  (NeoForge/Modrinth/Gradle hosts blocked); relying on GitHub Actions. **No in-game test; not
-  confirmed that the friend's Movies/Shows now play.**
+  TMDB helper); existing TV/wall and speaker regressions pass. Full GitHub Actions build of commit
+  014af30 passed (run 43126796796): Gradle build with tmdbRegression (source groups, allowance) and
+  visualRegression (recovery and fallback checks). **No in-game test; not confirmed that the
+  friend's Movies/Shows now play.**
 
 ## 0.11.0 - nested browsing, posters and client video recovery
 
