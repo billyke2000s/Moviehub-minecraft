@@ -208,8 +208,9 @@ final class TvVideoManager {
         }
         int master = ClientConfig.get(ClientConfig.MASTER_VOLUME, 100);
         int range = ClientConfig.get(ClientConfig.HEARING_RANGE, 16);
-        int speakerRange = ClientConfig.get(ClientConfig.SPEAKER_HEARING_RANGE, 32);
-        int fullVolumeRange = ClientConfig.get(ClientConfig.SPEAKER_FULL_VOLUME_RANGE, 4);
+        int speakerRange = ClientConfig.get(ClientConfig.SPEAKER_HEARING_RANGE, 48);
+        int fullVolumeRange = ClientConfig.get(ClientConfig.SPEAKER_FULL_VOLUME_RANGE, 12);
+        int speakerBoost = ClientConfig.get(ClientConfig.SPEAKER_BOOST, 150);
         SpeakerAudio.tick(mc, speakerRange);
         Vec3 ear = mc.player.getEyePosition();
         Iterator<Session> it = SESSIONS.values().iterator();
@@ -250,7 +251,7 @@ final class TvVideoManager {
                     s.player.setPauseMode(tv.mediaPaused());
                     s.mediaRevision = tv.mediaRevision();
                 }
-                int volume = SpeakerMix.volume(tv.volume(), master, range, speakerRange, fullVolumeRange, dist, toSpeakers);
+                int volume = SpeakerMix.volume(tv.volume(), master, range, speakerRange, fullVolumeRange, speakerBoost, dist, toSpeakers);
                 if (s.player.getVolume() != volume) s.player.setVolume(volume);
             }
         }

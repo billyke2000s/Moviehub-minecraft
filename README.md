@@ -47,10 +47,12 @@ at its volume. Your own `masterVolume` setting scales all TVs for you only.
 **Speakers:** right-click a TV while holding speakers to tune them to that TV, then place them
 anywhere within 48 blocks of it (sneak + right-click places a speaker against the TV instead).
 Untuned speakers play nothing. A message says which TV a speaker plays. You hear the TV from each linked speaker as if standing at the TV, so
-speakers carry the sound around a room or building. Linked speakers keep full volume within four
-blocks and fade out over 32 blocks by default; the TV itself keeps its 16-block fade. A nearby
+speakers carry the sound around a room or building. Next to a speaker the sound is 1.5x the TV's volume (it follows
+the remote's volume and your `masterVolume`), stays at full volume within 12 blocks, then fades to silence at 48 blocks;
+the TV itself keeps its 16-block fade. Several speakers do not add up: the nearest one sets the level. Speakers change
+loudness only; the sound has no direction. A nearby
 speaker starts audio even when its TV is out of view, provided the TV's chunk is loaded.
-`speakerHearingRange` and `speakerFullVolumeRange` in the client config adjust those distances.
+`speakerBoost`, `speakerFullVolume` and `speakerRange` in the client config adjust this.
 Right-click a placed speaker with an empty
 hand to see which TV it plays; to change it, break it, tune it on another TV and place it again.
 Up to 8 speakers per TV block.

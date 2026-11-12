@@ -26,6 +26,7 @@ public final class ClientConfig {
     public static final ModConfigSpec.IntValue HEARING_RANGE;
     public static final ModConfigSpec.IntValue SPEAKER_HEARING_RANGE;
     public static final ModConfigSpec.IntValue SPEAKER_FULL_VOLUME_RANGE;
+    public static final ModConfigSpec.IntValue SPEAKER_BOOST;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -44,10 +45,14 @@ public final class ClientConfig {
                 .defineInRange("masterVolume", 100, 0, 100);
         HEARING_RANGE = b.comment("Blocks away from the TV itself at which it becomes silent. Speakers use their own range below.")
                 .defineInRange("hearingRange", 16, 4, 64);
+        // New key names (0.11.2) so configs saved with the old 32/4 values pick up the louder defaults.
         SPEAKER_HEARING_RANGE = b.comment("Blocks away from a linked speaker at which its sound becomes silent.")
-                .defineInRange("speakerHearingRange", 32, 8, 96);
-        SPEAKER_FULL_VOLUME_RANGE = b.comment("Keep full TV volume within this many blocks of a speaker, then fade gradually.")
-                .defineInRange("speakerFullVolumeRange", 4, 0, 16);
+                .defineInRange("speakerRange", 48, 8, 128);
+        SPEAKER_FULL_VOLUME_RANGE = b.comment("Keep full speaker volume within this many blocks of a speaker, then fade gradually.")
+                .defineInRange("speakerFullVolume", 12, 0, 32);
+        SPEAKER_BOOST = b.comment("How loud a speaker is next to it, in percent of the TV's volume. 100 = same as the TV.",
+                        "Follows the TV's remote volume and your masterVolume. Above about 160 loud scenes may distort.")
+                .defineInRange("speakerBoost", 150, 100, 200);
         SPEC = b.build();
     }
 

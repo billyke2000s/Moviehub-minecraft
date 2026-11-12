@@ -102,27 +102,30 @@ public class SpeakerTest {
  static void check(boolean b,String m){if(!b)throw new AssertionError(m);}
  public static void main(String[] a){
   double[] none={};
-  check(SpeakerMix.volume(80,100,16,32,4,0,none)==80,"default TV volume next to the TV");
-  check(SpeakerMix.volume(80,100,16,32,4,8,none)==40,"TV keeps its existing falloff");
-  check(SpeakerMix.volume(80,100,16,32,4,16,none)==0,"TV alone is silent at its range");
-  check(SpeakerMix.volume(100,100,16,32,4,0,none)==100,"TV volume up to 100");
-  check(SpeakerMix.volume(0,100,16,32,4,40,new double[]{0})==0,"muted TV is silent even at a speaker");
-  check(SpeakerMix.volume(80,50,16,32,4,40,new double[]{4})==40,"master volume still scales speakers");
-  check(SpeakerMix.volume(80,100,16,32,4,40,new double[]{0})==80,"full speaker volume next to it");
-  check(SpeakerMix.volume(80,100,16,32,4,40,new double[]{4})==80,"full volume throughout four-block speaker zone");
-  check(SpeakerMix.volume(80,100,16,32,4,40,new double[]{30,8})==69,"speaker eight blocks away no longer falls to half volume");
-  check(SpeakerMix.volume(80,100,16,32,4,40,new double[]{16})==46,"speaker audible sixteen blocks away");
-  check(SpeakerMix.volume(80,100,16,32,4,40,new double[]{32,40})==0,"speaker fades to silence at its own range");
-  check(SpeakerMix.volume(80,100,16,32,4,0,new double[]{30})==80,"distant speaker cannot make nearby TV quieter");
-  check(SpeakerMix.volume(100,100,16,32,4,40,new double[]{1,1,1})==100,"overlapping speakers do not clip or override volume");
-  check(SpeakerMix.volume(150,120,16,32,4,0,none)==100,"volumes clamped to 100");
-  check(SpeakerMix.volume(-5,100,16,32,4,0,none)==0,"negative volume clamped to 0");
-  check(SpeakerMix.volume(80,100,16,32,4,8,new double[]{Double.NaN})==40,"invalid speaker cannot mute the TV");
-  check(SpeakerMix.keepPlaying(75,32,new double[]{27}),"keep audio beyond TV's old 64-block cutoff when near its speaker");
-  check(!SpeakerMix.keepPlaying(80,32,new double[]{32}),"release distant audio outside every emitter's range");
-  int last=101;
-  for(int d=0;d<=40;d++){
-   int v=SpeakerMix.volume(80,100,16,32,4,60,new double[]{d});
+  // tvVolume, master, tvRange, speakerRange, speakerFullVolume, boost, distToTv, distToSpeakers
+  check(SpeakerMix.volume(80,100,16,48,12,150,0,none)==80,"default TV volume next to the TV");
+  check(SpeakerMix.volume(80,100,16,48,12,150,8,none)==40,"TV keeps its existing falloff");
+  check(SpeakerMix.volume(80,100,16,48,12,150,16,none)==0,"TV alone is silent at its range");
+  check(SpeakerMix.volume(100,100,16,48,12,150,0,none)==100,"TV itself is not boosted");
+  check(SpeakerMix.volume(0,100,16,48,12,150,40,new double[]{0})==0,"muted TV is silent even at a speaker");
+  check(SpeakerMix.volume(80,100,16,48,12,150,40,new double[]{0})==120,"speaker is 1.5x the TV's volume next to it");
+  check(SpeakerMix.volume(40,100,16,48,12,150,40,new double[]{0})==60,"speaker boost follows the remote volume");
+  check(SpeakerMix.volume(80,50,16,48,12,150,40,new double[]{0})==60,"master volume still scales speakers");
+  check(SpeakerMix.volume(80,100,16,48,12,150,40,new double[]{12})==120,"full speaker volume throughout twelve blocks");
+  check(SpeakerMix.volume(80,100,16,48,12,150,40,new double[]{30})==60,"speaker halfway through its fade");
+  check(SpeakerMix.volume(80,100,16,48,12,150,60,new double[]{48,50})==0,"speaker fades to silence at its own range");
+  check(SpeakerMix.volume(80,100,16,48,12,150,0,new double[]{40})==80,"distant speaker cannot make nearby TV quieter");
+  check(SpeakerMix.volume(100,100,16,48,12,150,40,new double[]{1,1,1})==150,"several speakers do not stack");
+  check(SpeakerMix.volume(100,100,16,48,12,500,40,new double[]{0})==200,"boost capped at twice normal");
+  check(SpeakerMix.volume(80,100,16,48,12,10,40,new double[]{0})==80,"boost never below the TV's own level");
+  check(SpeakerMix.volume(150,120,16,48,12,150,0,none)==100,"volumes clamped to 100");
+  check(SpeakerMix.volume(-5,100,16,48,12,150,0,none)==0,"negative volume clamped to 0");
+  check(SpeakerMix.volume(80,100,16,48,12,150,8,new double[]{Double.NaN})==40,"invalid speaker cannot mute the TV");
+  check(SpeakerMix.keepPlaying(75,48,new double[]{40}),"keep audio beyond TV's old 64-block cutoff when near its speaker");
+  check(!SpeakerMix.keepPlaying(80,48,new double[]{48}),"release distant audio outside every emitter's range");
+  int last=201;
+  for(int d=0;d<=60;d++){
+   int v=SpeakerMix.volume(80,100,16,48,12,150,60,new double[]{d});
    check(v<=last,"speaker attenuation must be smooth and monotonic");last=v;
   }
   System.out.println("PASS: TV volume, master volume and speaker hearing maths");

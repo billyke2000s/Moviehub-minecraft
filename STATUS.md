@@ -1,5 +1,21 @@
 # Status
 
+## 0.11.2 - louder speakers with a longer reach
+
+- Reported: speakers sounded about the same as the TV and went quiet a short distance away.
+  Cause: each TV has one VLC player whose sound is one flat stream; speakers only set its volume,
+  as the louder of "at the TV" and "at the nearest speaker", never above the TV's own level.
+- Next to a speaker the level is now 1.5x the TV's volume (scaled by the remote volume and
+  masterVolume; VLC 100 = normal, up to 200), full within 12 blocks, fading to silence at 48.
+  The TV's own 16-block fade is unchanged. Speakers still do not stack and still have no direction.
+- Client settings renamed to speakerRange (48), speakerFullVolume (12) and new speakerBoost (150),
+  so configs saved with the old 32/4 values get the new defaults; the old keys are no longer read.
+- Confirmed from WATERMeDIA 2.1.x source that setVolume passes the value straight to VLC.
+- Client-only change: protocol stays tv-0.11.1, so a 0.11.1 server works with 0.11.2 clients.
+- Verified: speaker maths regressions (boost, remote/master scaling, 12-block full zone, 48-block
+  fade, no stacking, 200 cap, monotonic fade) and the existing suites pass. **Not listened to in-game;
+  whether 1.5x distorts on loud scenes is untested.**
+
 ## 0.11.1 - per-PC source fallback and menu reliability
 
 - Reported: Movies/Shows play for the owner but the friend gets "No signal" or endless "Tuning in";

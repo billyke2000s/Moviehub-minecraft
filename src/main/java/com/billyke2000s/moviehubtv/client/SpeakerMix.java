@@ -3,17 +3,22 @@ package com.billyke2000s.moviehubtv.client;
 /**
  * How loud a TV is for the listener. Pure maths with no Minecraft types, so it can be tested on its own.
  * The TV's own volume (set with the remote) is scaled by the player's master volume and fades to silence
- * at the TV's hearing range. Speakers have a separate room-sized range and full-volume zone.
+ * at the TV's hearing range. Speakers have a separate range and full-volume zone, and play louder than
+ * the TV itself by a boost percentage of the TV's volume (VLC treats 100 as normal and amplifies up to 200).
  */
 final class SpeakerMix {
     private SpeakerMix() {}
+    /** Highest volume handed to VLC: 200 is twice normal loudness. */
+    static final int MAX_VOLUME = 200;
 
     static int volume(int tvVolume, int masterPercent, int tvRange, int speakerRange, int fullVolumeRange,
-                      double distToTv, double[] distToSpeakers) {
+                      int boostPercent, double distToTv, double[] distToSpeakers) {
         double gain = fade(distToTv, tvRange, 0);
-        for (double distance : distToSpeakers) gain = Math.max(gain, fade(distance, speakerRange, fullVolumeRange));
+        double boost = Math.max(100, Math.min(MAX_VOLUME, boostPercent)) / 100.0;
+        // The nearest speaker sets the level; several speakers do not stack into clipping.
+        for (double distance : distToSpeakers) gain = Math.max(gain, boost * fade(distance, speakerRange, fullVolumeRange));
         double level = clamp(tvVolume) * (clamp(masterPercent) / 100.0) * gain;
-        return (int) Math.round(level);
+        return (int) Math.min(MAX_VOLUME, Math.round(level));
     }
 
     /** Keep an existing player alive near a remote speaker, including beyond the TV's old 64-block cutoff. */
@@ -34,4 +39,3 @@ final class SpeakerMix {
         return Math.max(0, Math.min(100, v));
     }
 }
-
