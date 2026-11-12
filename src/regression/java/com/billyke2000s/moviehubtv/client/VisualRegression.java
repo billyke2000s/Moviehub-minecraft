@@ -34,9 +34,11 @@ public final class VisualRegression {
         check(!VideoRecovery.failed(1000, false, false, false), "Allow initial buffering");
         check(VideoRecovery.failed(20000, false, false, false), "Detect a player with no uploaded video frame");
         check(!VideoRecovery.failed(30000, false, false, true), "Never restart a healthy picture");
-        check(!VideoRecovery.failed(30000, false, true, false), "Do not loop a finished film");
+        check(!VideoRecovery.failed(30000, false, true, true), "Do not loop a finished film");
+        check(VideoRecovery.failed(1000, false, true, false), "A link refused before any picture fails instead of sitting on No signal");
         check(!VideoRecovery.mayStart(3, 10000, 0), "Bound client retry attempts");
         check(!VideoRecovery.mayStart(1, 1000, 3000), "Respect recovery backoff");
+        MediaFallbackRegression.run();
         System.out.println("PASS: actual Minecraft JPEG-poster decoding, valid case-sensitive IDs and bounded video recovery");
 
         check(GLFW.glfwInit(), "GLFW initialises");

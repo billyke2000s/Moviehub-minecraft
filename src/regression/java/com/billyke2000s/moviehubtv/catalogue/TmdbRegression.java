@@ -19,5 +19,6 @@ public final class TmdbRegression {
         if (!ResolvedMedia.find("vod:moviehub:unissued|Fixture").isEmpty()) throw new AssertionError("Reject client-invented source IDs");
         ResolvedMedia.clear();
         System.out.println("PASS: TMDB posters, title identity and server-issued free-source selection");
+        SourceGroupRegression.run();
     }
 }

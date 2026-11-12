@@ -164,7 +164,11 @@ public final class RemoteControl {
                 String id = GuideRenderer.chooseVod(p.pos(), hit.channelIndex());
                 if (id != null) send(p.pos(), TvBlockEntity.ACTION_TUNE, id);
             }
-            case ROW -> send(p.pos(), TvBlockEntity.ACTION_TUNE, ChannelRepository.channels().get(hit.channelIndex()).id());
+            case ROW -> {
+                // The list can be swapped by a background reload between drawing and clicking.
+                var channels = ChannelRepository.channels();
+                if (hit.channelIndex() < channels.size()) send(p.pos(), TvBlockEntity.ACTION_TUNE, channels.get(hit.channelIndex()).id());
+            }
             case CATEGORY -> GuideRenderer.chooseCategory(p.pos(), hit.channelIndex());
             case CATEGORIES -> {
                 if (GuideRenderer.isVod(p.pos())) GuideRenderer.vodCategories(p.pos());

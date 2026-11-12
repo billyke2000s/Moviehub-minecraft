@@ -34,6 +34,10 @@ final class TvVideoManager {
         int starts;
         long retryAt, frameProbeAt;
         boolean uploadedFrame;
+        /** The current source has shown a picture on this PC. */
+        boolean sawPicture;
+        /** On-demand fallback sources sent by the server (0 for live TV), and the one being tried. */
+        int sourceCount, sourceIndex;
         String failure = "";
 
         Session(BlockPos pos) {
@@ -66,6 +70,34 @@ final class TvVideoManager {
             frameProbeAt = 0;
         }
 
+        /** Decides what to try next after this PC could not play the current source. */
+        void failedHere() {
+            long now = System.currentTimeMillis();
+            switch (VideoRecovery.afterFailure(sourceCount, sawPicture, starts, sourceIndex)) {
+                case NEXT_SOURCE -> {
+                    MovieHubTV.LOGGER.warn("TV source {} of {} did not play on this client; trying the next one", sourceIndex + 1, sourceCount);
+                    sourceIndex++;
+                    starts = 0;
+                    sawPicture = false;
+                    retryAt = now + 1000;
+                    failure = "Source " + sourceIndex + " won't play on this PC - trying " + (sourceIndex + 1) + " of " + sourceCount + "...";
+                }
+                case RETRY_SAME -> {
+                    retryAt = now + 3000;
+                    failure = "Retrying video on this PC...";
+                }
+                case GIVE_UP -> {
+                    retryAt = now + 3000;
+                    if (sourceCount > 0) {
+                        // Parked past the end; resumes by itself if the search sends more sources.
+                        failure = "None of the " + sourceCount + " sources play on this PC - choose the title again";
+                        sourceIndex = sourceCount;
+                        starts = 0;
+                    } else failure = "Video failed on this PC - choose another source";
+                }
+            }
+        }
+
         void release() {
             releasePlayback();
             if (registered) {
@@ -93,6 +125,7 @@ final class TvVideoManager {
             s.releasePlayback();
             s.channelId = channel.id();
             s.starts = 0; s.retryAt = 0; s.failure = "";
+            s.sourceCount = 0; s.sourceIndex = 0; s.sawPicture = false;
         }
         if (s.player == null) {
             if (!VideoRecovery.mayStart(s.starts, System.currentTimeMillis(), s.retryAt)) return s;
@@ -109,15 +142,22 @@ final class TvVideoManager {
             if (url.startsWith("moviehub-vod:")) {
                 var level = Minecraft.getInstance().level;
                 if (level == null || !(level.getBlockEntity(pos) instanceof TvBlockEntity tv) || tv.mediaSource().isEmpty()) return s;
+                // The server may add sources while its search runs; this PC works down the list itself.
+                java.util.List<com.google.gson.JsonObject> sources = MediaSources.parse(tv.mediaSource());
+                s.sourceCount = sources.size();
+                if (sources.isEmpty()) {
+                    s.failure = "Unreadable source list - choose the title again";
+                    return s;
+                }
+                if (s.sourceIndex >= sources.size()) return s; // every source failed here; wait for more
                 try {
                     if (s.relay != null) s.relay.close();
-                    s.relay = new LocalMediaRelay(com.google.gson.JsonParser.parseString(tv.mediaSource()).getAsJsonObject());
+                    s.relay = new LocalMediaRelay(sources.get(s.sourceIndex));
                     url = s.relay.url();
                 } catch (Exception e) {
                     s.starts++;
-                    s.retryAt = System.currentTimeMillis() + 3000;
-                    s.failure = "Video transport failed on this PC - choose another source";
                     MovieHubTV.LOGGER.warn("Could not start local MovieHub media transport ({})", e.getClass().getSimpleName());
+                    s.failedHere();
                     return s;
                 }
             } else if (s.relay != null) { s.relay.close(); s.relay = null; }
@@ -192,13 +232,12 @@ final class TvVideoManager {
             }
             if (s.player != null) {
                 boolean picture = s.hasPicture();
-                if (VideoRecovery.failed(System.currentTimeMillis() - s.tunedAt, s.player.isBroken(), s.player.isEnded(), picture)) {
+                if (picture) s.sawPicture = true;
+                if (VideoRecovery.failed(System.currentTimeMillis() - s.tunedAt, s.player.isBroken(), s.player.isEnded(), s.sawPicture)) {
                     MovieHubTV.LOGGER.warn("TV video has no usable frame on this client; attempt {} of {} (state={}, size={}x{})",
                             s.starts, VideoRecovery.MAX_STARTS, s.player.getStateName(), s.player.width(), s.player.height());
-                    s.failure = s.starts < VideoRecovery.MAX_STARTS ? "Retrying video on this PC..."
-                            : "Video failed on this PC - choose another source";
                     s.releasePlayback();
-                    s.retryAt = System.currentTimeMillis() + 3000;
+                    s.failedHere();
                     continue;
                 }
                 // Apply controls once after VLC is ready; do not repeatedly seek through ad breaks.

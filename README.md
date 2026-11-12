@@ -18,7 +18,7 @@ Weekly trending uses TMDB's weekly list and resets other filters. Anime stays Ja
 
 Provider categories describe availability, supplied by JustWatch via TMDB; choosing Netflix does
 not supply a Netflix subscription or video. Playback continues through the existing source picker.
-The server's TMDB key is used for all browsing; players never receive it. Version 0.11.0 requires
+The server's TMDB key is used for all browsing; players never receive it. Version 0.11.1 requires
 the updated jar on the server and every client.
 
 1. Install NeoForge for Minecraft 1.21.1.
@@ -91,7 +91,8 @@ TV walls regroup when their chunks load; there is no new rotation tool or wall-f
   search, its bundled requests/six packages extract into config/moviehubtv-engine-0.10.0/packages.
   This runs off the game thread and opens no public server port. Players need no Python install.
 - Source searching can continue for several minutes; choose a returned source immediately without
-  waiting for every website. Provider names, quality and failures come from the real resolver.
+  waiting for every website. Every source the search finds is sent to all players; if the chosen
+  source will not play on someone's PC, their game tries the next one by itself ("source 2 of 5"). Provider names, quality and failures come from the real resolver.
   Websites can be offline or have no matching video. TMDB supplies metadata, not the movie itself.
 - Aim the remote to use the existing player's **-10s | Play/Pause | +10s | Guide** popup. After a
   server restart or an expired link, select the title again to obtain fresh source URLs.

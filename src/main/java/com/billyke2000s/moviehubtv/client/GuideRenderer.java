@@ -60,7 +60,8 @@ final class GuideRenderer {
     private static final class State {
         int tab; // Live TV, Movies, Shows, Anime. The existing guide stays intact below the tabs.
         final TmdbBrowser browser = new TmdbBrowser();
-        int category;          // index into ChannelRepository.categories(); 0 = All channels
+        // Remembered by name: the category list is rebuilt (and can reorder) whenever channels reload.
+        String category = ChannelCategories.ALL;
         boolean picking = true; // showing the category list; the guide opens on it the first time
         Integer channelScroll; // null until first shown, then the first visible row
         int categoryScroll;
@@ -101,10 +102,18 @@ final class GuideRenderer {
         return STATES.computeIfAbsent(pos.immutable(), p -> new State());
     }
 
+    /** Index of the TV's chosen category in ChannelRepository.categories(); 0 (All channels) if it has gone. */
+    private static int categoryIndex(State s) {
+        List<ChannelCategories.Category> cats = ChannelRepository.categories();
+        for (int i = 1; i < cats.size(); i++) if (cats.get(i).name().equals(s.category)) return i;
+        return 0;
+    }
+
     /** Channel indices (into ChannelRepository.channels()) in the TV's current category. */
     private static int[] visible(State s) {
         List<ChannelCategories.Category> cats = ChannelRepository.categories();
-        if (s.category > 0 && s.category < cats.size()) return cats.get(s.category).indices();
+        int category = categoryIndex(s);
+        if (category > 0) return cats.get(category).indices();
         int n = ChannelRepository.channels().size();
         int[] all = new int[n];
         for (int i = 0; i < n; i++) all[i] = i;
@@ -113,7 +122,8 @@ final class GuideRenderer {
 
     private static String categoryName(State s) {
         List<ChannelCategories.Category> cats = ChannelRepository.categories();
-        return s.category > 0 && s.category < cats.size() ? cats.get(s.category).name() : ChannelCategories.ALL;
+        int category = categoryIndex(s);
+        return category > 0 ? cats.get(category).name() : ChannelCategories.ALL;
     }
 
     private static int count(State s) {
@@ -157,12 +167,13 @@ final class GuideRenderer {
     static void toggleCategories(BlockPos pos) {
         State s = state(pos);
         s.picking = !s.picking;
-        if (s.picking) s.categoryScroll = Math.max(0, s.category - ROWS / 2);
+        if (s.picking) s.categoryScroll = Math.max(0, categoryIndex(s) - ROWS / 2);
     }
 
     static void chooseCategory(BlockPos pos, int category) {
         State s = state(pos);
-        s.category = category;
+        List<ChannelCategories.Category> cats = ChannelRepository.categories();
+        s.category = category > 0 && category < cats.size() ? cats.get(category).name() : ChannelCategories.ALL;
         s.picking = false;
         s.channelScroll = 0;
     }
@@ -266,6 +277,7 @@ final class GuideRenderer {
 
     private static void drawCategories(Canvas c, State s, GuideLayout l, int first, Hit hover) {
         List<ChannelCategories.Category> cats = ChannelRepository.categories();
+        int chosen = categoryIndex(s);
         for (int row = 0; row < ROWS; row++) {
             int index = first + row;
             if (index >= cats.size()) break;
@@ -274,7 +286,7 @@ final class GuideRenderer {
             boolean hovered = hover.target() == Target.CATEGORY && hover.channelIndex() == index;
             float w = l.rowRight() - GuideLayout.CH_X;
             c.panel(GuideLayout.CH_X, y, w, ROW_H, 0.5f, hovered ? CH_HOVER : CH, EDGE_LIGHT, EDGE_DARK);
-            if (index == s.category) c.rect(GuideLayout.CH_X + 3, y + 7, 3, 3, 1, GREEN);
+            if (index == chosen) c.rect(GuideLayout.CH_X + 3, y + 7, 3, 3, 1, GREEN);
             c.text(c.fit(cat.name(), w - 60, 0.8f), GuideLayout.CH_X + 9, y + 5, 1, 0.8f, WHITE);
             c.textRight(cat.indices().length + " channels", l.rowRight() - 4, y + 5.5f, 1, 0.7f, SUB);
             if (hovered) c.outline(GuideLayout.CH_X - 1, y - 1, w + 2, ROW_H + 2, 1.2f, GOLD);

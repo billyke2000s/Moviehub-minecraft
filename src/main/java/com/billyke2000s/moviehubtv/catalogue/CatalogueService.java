@@ -17,18 +17,15 @@ public final class CatalogueService {
             new ArrayBlockingQueue<>(20), r -> { var t = new Thread(r, "MovieHubTV-Catalogue"); t.setDaemon(true); return t; });
     private static final Set<UUID> SEARCHING = ConcurrentHashMap.newKeySet();
     private static final Semaphore SEARCH_SLOTS = new Semaphore(2);
-    private static final Map<UUID, Long> LAST = new HashMap<>();
-    public static void clear() { LAST.clear(); SEARCHING.clear(); TmdbGateway.clear(); MovieHubEngine.stop(); ResolvedMedia.clear(); }
+    private static final RequestAllowance ALLOWANCE = new RequestAllowance();
+    public static void clear() { ALLOWANCE.clear(); SEARCHING.clear(); TmdbGateway.clear(); MovieHubEngine.stop(); ResolvedMedia.clear(); }
     public static void request(CataloguePayload.Request q, Player player) {
         if (!(player instanceof ServerPlayer p)) return;
-        long now = System.currentTimeMillis();
-        if (now - LAST.getOrDefault(p.getUUID(), 0L) < 250) { reply(p, q.serial(), error("Please wait briefly, then retry.")); return; }
-        LAST.put(p.getUUID(), now);
+        if (!ALLOWANCE.allow(p.getUUID(), System.currentTimeMillis())) { reply(p, q.serial(), error("Please wait briefly, then retry.")); return; }
         if (q.route().equals("cancel")) {
             MovieHubEngine.cancel(p.getUUID());
             JsonObject out = new JsonObject(); out.addProperty("status", "Search cancelled"); reply(p, q.serial(), out); return;
         }
-        if (LAST.size() > 2048) LAST.entrySet().removeIf(e -> now - e.getValue() > 60000);
         if (q.route().equals("settings")) {
             JsonObject out = new JsonObject(); JsonArray urls = new JsonArray();
             ServerConfig.get(ServerConfig.PLAYLISTS, List.<String>of()).stream().limit(20).forEach(urls::add);
@@ -59,13 +56,16 @@ public final class CatalogueService {
                     if (q.query().equals("tv")) title += " S" + q.season() + " E" + q.page();
                     String label = title.replaceAll("[\\p{Cntrl}|]", " ");
                     String displayTitle = label.substring(0, Math.min(100, label.length()));
+                    String group = UUID.randomUUID().toString();
                     MovieHubEngine.search(p.getUUID(), info, event -> {
                         String type = TmdbGateway.text(event, "event");
                         JsonObject out = new JsonObject(); out.addProperty("more", !type.equals("done") && !type.equals("error"));
                         if (type.equals("source")) {
                             try {
                                 JsonObject source = event.getAsJsonObject("source");
-                                String id = ResolvedMedia.add(source);
+                                String id = ResolvedMedia.add(source, group);
+                                // A TV already showing this title gets the new source as a fallback.
+                                server.execute(() -> ResolvedMedia.sourcesAdded(group));
                                 JsonObject item = new JsonObject();
                                 item.addProperty("id", id); item.addProperty("kind", "source");
                                 item.addProperty("title", TmdbGateway.text(source, "providerName"));

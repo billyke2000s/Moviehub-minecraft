@@ -19,7 +19,7 @@ import java.util.List;
  * Saved TV state: power, tuned channel, whether the guide is showing, volume and linked speakers.
  * Changed only on the server: remote/hand actions through {@link #apply}, speaker links through {@link SpeakerLink}.
  */
-public class TvBlockEntity extends BlockEntity {
+public class TvBlockEntity extends BlockEntity implements com.billyke2000s.moviehubtv.catalogue.ResolvedMedia.Watcher {
     public static final int ACTION_POWER = 0;
     public static final int ACTION_OPEN_GUIDE = 1;
     public static final int ACTION_CLOSE_GUIDE = 2;
@@ -149,6 +149,7 @@ public class TvBlockEntity extends BlockEntity {
                     String source = com.billyke2000s.moviehubtv.catalogue.ResolvedMedia.find(channel);
                     if (source.isEmpty()) return;
                     mediaSource = source;
+                    com.billyke2000s.moviehubtv.catalogue.ResolvedMedia.watch(channel, this);
                 } else {
                     if (channel.startsWith("vod:") && !channel.matches("vod:pluto:[0-9a-f]{24}\\|[^\\p{Cntrl}|]{1,100}")) return;
                     mediaSource = "";
@@ -173,6 +174,19 @@ public class TvBlockEntity extends BlockEntity {
             default -> { return; }
         }
         sync();
+    }
+
+    /**
+     * The title's search found another source: pass the longer fallback list to players without
+     * restarting anyone's playback. Server side only.
+     */
+    @Override
+    public void mediaSourcesAdded() {
+        if (level == null || level.isClientSide() || isRemoved() || !channelId.startsWith("vod:moviehub:")) return;
+        String now = com.billyke2000s.moviehubtv.catalogue.ResolvedMedia.find(channelId);
+        if (now.isEmpty() || now.equals(mediaSource)) return;
+        mediaSource = now;
+        sendState();
     }
 
     /** Called by {@link SpeakerLink}. Drops the oldest speaker when full. Server side only. */

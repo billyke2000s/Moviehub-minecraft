@@ -117,6 +117,9 @@ public class TvRenderer implements BlockEntityRenderer<TvBlockEntity> {
         if (session != null && session.player != null && (session.player.isBroken() || session.player.isEnded())) {
             return "No signal";
         }
+        if (session != null && session.sourceCount > 1 && session.sourceIndex < session.sourceCount) {
+            return "Tuning in - source " + (session.sourceIndex + 1) + " of " + session.sourceCount + "...";
+        }
         return "Tuning in...";
     }
 

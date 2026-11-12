@@ -1,5 +1,38 @@
 # Status
 
+## 0.11.1 - per-PC source fallback and menu reliability
+
+- Reported: Movies/Shows play for the owner but the friend gets "No signal" or endless "Tuning in";
+  the owner's server is on the owner's home network, the friend joins over the internet; the
+  friend's Live TV is not reported as failing. Cause **not confirmed** (no access to either game or
+  the server log). Most likely [inference]: the server finds source links from the owner's internet
+  connection, and some websites only serve a link to the connection that found it, or to one viewer.
+- The server now keeps every source a search finds for a title (one group per search) and sends
+  them all, chosen source first, up to 12 sources / 40,000 characters. Sources found after tuning
+  are added to the TV without restarting anyone's playback.
+- Each PC works down that list on its own: a source that never shows a picture on that PC is
+  skipped at once; one that was playing is retried up to three times first; the last source is
+  retried, then the TV says none played and resumes if the search sends more. Players can end up
+  on different sources of the same title; position, pause and seek stay shared.
+- Bug fixed: a player that ended without ever showing a picture (a refused link) was not treated as
+  failed, so the TV could sit on "No signal" forever. The screen now shows "source N of M".
+- Menu fix: the server rejected any catalogue request arriving within 250 ms of the previous one,
+  while clients send one every 300 ms; internet jitter can bunch packets, so menu clicks from players
+  off the host's network could fail with "Please wait briefly, then retry". Now a burst of 6 is
+  allowed, refilled at the same 4 per second.
+- Menu fix: the chosen guide category is remembered by name; it was an index into a list that is
+  rebuilt (and can reorder) when channels reload, so the guide could jump to another category.
+  A channel click is ignored rather than crashing if the list reloads between drawing and clicking.
+- Not changed: guide/menu navigation is per player by design, and each player's game builds its own
+  Live TV channel list (Pluto line-up for their region, downloads cached up to 6 hours, client
+  config), so channel numbers and categories can differ between players.
+- Update server and every client together: protocol tv-0.11.1 (the source list format changed).
+- Verified locally: new fallback-order, retry-bound, source-list parsing, source-group, late-source
+  notification, size-cap and request-allowance regressions pass (pure Java, with a stub for the one
+  TMDB helper); existing TV/wall and speaker regressions pass. Full build not possible here
+  (NeoForge/Modrinth/Gradle hosts blocked); relying on GitHub Actions. **No in-game test; not
+  confirmed that the friend's Movies/Shows now play.**
+
 ## 0.11.0 - nested browsing, posters and client video recovery
 
 - Movies, Shows and Anime open nested menus in the existing blue guide: popular, weekly trending,
